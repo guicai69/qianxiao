@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+*.egg
+
+# Django
+*.log
+db.sqlite3
+/backend/staticfiles/
+/media/
+
+# Virtualenv
+venv/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node
+node_modules/
+/frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MySQL
+mysql-data/
+
+# MCP / tools
+mcp-servers/
