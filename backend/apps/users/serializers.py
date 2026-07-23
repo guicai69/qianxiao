@@ -101,6 +101,11 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
         model = User
         fields = ['phone', 'password', 'nickname', 'role', 'level']
 
+    def validate_phone(self, value):
+        if User.objects.filter(phone=value).exists():
+            raise serializers.ValidationError('该手机号已存在')
+        return value
+
     def create(self, validated_data):
         password = validated_data.pop('password')
         user = User(**validated_data)

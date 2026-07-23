@@ -78,7 +78,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated()]
         if self.action in ('list', 'retrieve'):
             return [IsAdminOrReception()]
-        if self.action == 'destroy':
+        if self.action in ('create', 'destroy'):
             return [IsAdmin()]
         return [IsAdminOrReception()]
 

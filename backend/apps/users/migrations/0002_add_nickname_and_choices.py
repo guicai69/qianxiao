@@ -8,11 +8,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='user',
-            name='nickname',
-            field=models.CharField(default='', max_length=50, verbose_name='昵称'),
-        ),
         migrations.AlterField(
             model_name='user',
             name='phone',
