@@ -16,7 +16,7 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Current Database: `badminton_venue`
+-- 当前数据库：`badminton_venue`
 --
 
 /*!40000 DROP DATABASE IF EXISTS `badminton_venue`*/;
@@ -26,7 +26,8 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/ `badminton_venue` /*!40100 DEFAULT CHAR
 USE `badminton_venue`;
 
 --
--- Table structure for table `auth_group`
+-- 表结构：`auth_group`
+-- 权限组表
 --
 
 DROP TABLE IF EXISTS `auth_group`;
@@ -41,7 +42,7 @@ CREATE TABLE `auth_group` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `auth_group`
+-- 数据导出：`auth_group`
 --
 
 LOCK TABLES `auth_group` WRITE;
@@ -50,7 +51,8 @@ LOCK TABLES `auth_group` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `auth_group_permissions`
+-- 表结构：`auth_group_permissions`
+-- 权限组-权限关联表
 --
 
 DROP TABLE IF EXISTS `auth_group_permissions`;
@@ -69,7 +71,7 @@ CREATE TABLE `auth_group_permissions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `auth_group_permissions`
+-- 数据导出：`auth_group_permissions`
 --
 
 LOCK TABLES `auth_group_permissions` WRITE;
@@ -78,7 +80,8 @@ LOCK TABLES `auth_group_permissions` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `auth_permission`
+-- 表结构：`auth_permission`
+-- 权限表
 --
 
 DROP TABLE IF EXISTS `auth_permission`;
@@ -96,7 +99,7 @@ CREATE TABLE `auth_permission` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `auth_permission`
+-- 数据导出：`auth_permission`
 --
 
 LOCK TABLES `auth_permission` WRITE;
@@ -106,7 +109,8 @@ INSERT INTO `auth_permission` VALUES (1,'Can add log entry',1,'add_logentry'),(2
 UNLOCK TABLES;
 
 --
--- Table structure for table `django_admin_log`
+-- 表结构：`django_admin_log`
+-- Django 管理后台操作日志
 --
 
 DROP TABLE IF EXISTS `django_admin_log`;
@@ -131,7 +135,7 @@ CREATE TABLE `django_admin_log` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `django_admin_log`
+-- 数据导出：`django_admin_log`
 --
 
 LOCK TABLES `django_admin_log` WRITE;
@@ -140,7 +144,8 @@ LOCK TABLES `django_admin_log` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `django_content_type`
+-- 表结构：`django_content_type`
+-- Django 模型类型注册
 --
 
 DROP TABLE IF EXISTS `django_content_type`;
@@ -156,7 +161,7 @@ CREATE TABLE `django_content_type` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `django_content_type`
+-- 数据导出：`django_content_type`
 --
 
 LOCK TABLES `django_content_type` WRITE;
@@ -166,7 +171,8 @@ INSERT INTO `django_content_type` VALUES (1,'admin','logentry'),(3,'auth','group
 UNLOCK TABLES;
 
 --
--- Table structure for table `django_migrations`
+-- 表结构：`django_migrations`
+-- Django 迁移记录
 --
 
 DROP TABLE IF EXISTS `django_migrations`;
@@ -182,7 +188,7 @@ CREATE TABLE `django_migrations` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `django_migrations`
+-- 数据导出：`django_migrations`
 --
 
 LOCK TABLES `django_migrations` WRITE;
@@ -192,7 +198,8 @@ INSERT INTO `django_migrations` VALUES (1,'contenttypes','0001_initial','2026-07
 UNLOCK TABLES;
 
 --
--- Table structure for table `django_session`
+-- 表结构：`django_session`
+-- Django 会话记录
 --
 
 DROP TABLE IF EXISTS `django_session`;
@@ -208,7 +215,7 @@ CREATE TABLE `django_session` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `django_session`
+-- 数据导出：`django_session`
 --
 
 LOCK TABLES `django_session` WRITE;
@@ -217,7 +224,8 @@ LOCK TABLES `django_session` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `users`
+-- 表结构：`users`
+-- 用户表（管理员 / 前台 / 会员）
 --
 
 DROP TABLE IF EXISTS `users`;
@@ -246,7 +254,7 @@ CREATE TABLE `users` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `users`
+-- 数据导出：`users`
 --
 
 LOCK TABLES `users` WRITE;
@@ -255,7 +263,8 @@ LOCK TABLES `users` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `users_groups`
+-- 表结构：`users_groups`
+-- 用户-权限组关联表
 --
 
 DROP TABLE IF EXISTS `users_groups`;
@@ -274,7 +283,7 @@ CREATE TABLE `users_groups` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `users_groups`
+-- 数据导出：`users_groups`
 --
 
 LOCK TABLES `users_groups` WRITE;
@@ -283,7 +292,8 @@ LOCK TABLES `users_groups` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `users_user_permissions`
+-- 表结构：`users_user_permissions`
+-- 用户-权限关联表
 --
 
 DROP TABLE IF EXISTS `users_user_permissions`;
@@ -302,7 +312,7 @@ CREATE TABLE `users_user_permissions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `users_user_permissions`
+-- 数据导出：`users_user_permissions`
 --
 
 LOCK TABLES `users_user_permissions` WRITE;
@@ -311,7 +321,7 @@ LOCK TABLES `users_user_permissions` WRITE;
 UNLOCK TABLES;
 
 --
--- Dumping routines for database 'badminton_venue'
+-- 数据库存储过程导出：`badminton_venue`
 --
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -323,4 +333,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-22 13:27:50
+-- 导出完成时间：2026-07-22 13:27:50
