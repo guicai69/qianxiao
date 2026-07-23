@@ -2,5 +2,6 @@
 from django.urls import path, include
 
 urlpatterns = [
-    # Apps will register their routes here
+    path('', include('apps.users.urls')),
+    # Future apps will register their routes here
 ]

@@ -2,14 +2,39 @@
   <el-container class="admin-layout">
     <el-aside width="220px">
       <div class="logo">🏸 羽毛球馆管理</div>
-      <el-menu router :default-active="$route.path" background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF">
-        <!-- Menu items will be added per role -->
+      <el-menu
+        router
+        :default-active="$route.path"
+        background-color="#304156"
+        text-color="#bfcbd9"
+        active-text-color="#409EFF"
+      >
+        <el-menu-item index="/admin/dashboard">
+          <el-icon><DataAnalysis /></el-icon>
+          <span>数据看板</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/users" v-if="userStore.isAdmin">
+          <el-icon><User /></el-icon>
+          <span>用户管理</span>
+        </el-menu-item>
+
+        <!-- Reception menu -->
+        <template v-if="userStore.isReception">
+          <el-menu-item index="/reception/dashboard">
+            <el-icon><Monitor /></el-icon>
+            <span>操作台</span>
+          </el-menu-item>
+        </template>
       </el-menu>
     </el-aside>
+
     <el-container>
       <el-header>
-        <span>{{ userInfo?.username || '管理员' }}</span>
-        <el-button type="danger" link @click="logout">退出登录</el-button>
+        <span>{{ userStore.userInfo?.nickname || userStore.userInfo?.phone || '用户' }}</span>
+        <div>
+          <el-tag :type="roleTag" size="small" style="margin-right:12px">{{ roleLabel }}</el-tag>
+          <el-button type="danger" link @click="handleLogout">退出登录</el-button>
+        </div>
       </el-header>
       <el-main>
         <router-view />
@@ -19,14 +44,22 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { DataAnalysis, User, Monitor } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store'
 import { useRouter } from 'vue-router'
 
 const userStore = useUserStore()
 const router = useRouter()
-const userInfo = userStore.userInfo
 
-function logout() {
+const roleTag = computed(() =>
+  ({ admin: 'danger', reception: 'warning', member: 'success' }[userStore.role])
+)
+const roleLabel = computed(() =>
+  ({ admin: '管理员', reception: '前台', member: '会员' }[userStore.role])
+)
+
+function handleLogout() {
   userStore.clearToken()
   router.push('/login')
 }
@@ -36,6 +69,9 @@ function logout() {
 .admin-layout { height: 100vh; }
 .el-aside { background-color: #304156; overflow-x: hidden; }
 .logo { color: #fff; text-align: center; padding: 16px 0; font-size: 16px; font-weight: bold; }
-.el-header { background: #fff; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e6e6e6; }
+.el-header {
+  background: #fff; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #e6e6e6;
+}
 .el-main { background: #f0f2f5; }
 </style>
