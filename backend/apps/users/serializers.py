@@ -6,7 +6,7 @@ from .models import User
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
-        write_only=True, min_length=6, validators=[validate_password],
+        write_only=True, min_length=6,
         label='密码',
     )
     password2 = serializers.CharField(write_only=True, label='确认密码')

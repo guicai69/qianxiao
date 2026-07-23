@@ -3,7 +3,7 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store'
 
 const request = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api/',
+  baseURL: '/api/',
   timeout: 10000,
 })
 
@@ -36,7 +36,17 @@ request.interceptors.response.use(
           ElMessage.error('服务器错误')
           break
         default:
-          ElMessage.error(response.data?.detail || '请求失败')
+          // 提取 DRF 验证错误详情
+          const data = response.data
+          if (typeof data === 'object') {
+            const msgs = []
+            for (const [key, val] of Object.entries(data)) {
+              msgs.push(Array.isArray(val) ? val.join('; ') : val)
+            }
+            ElMessage.error(msgs.join('; ') || '请求失败')
+          } else {
+            ElMessage.error(response.data?.detail || response.data?.message || '请求失败')
+          }
       }
     } else {
       ElMessage.error('网络连接失败')
