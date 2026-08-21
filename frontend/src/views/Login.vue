@@ -1,47 +1,82 @@
 <template>
-  <div class="login-page">
-    <el-card class="login-card">
-      <h2>🏸 羽毛球馆管理系统</h2>
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="form.phone" placeholder="请输入手机号" />
-        </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password
-            @keyup.enter="handleLogin" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" style="width:100%" :loading="loading" @click="handleLogin">登 录</el-button>
-        </el-form-item>
-        <el-form-item>
-          <el-button link type="primary" @click="$router.push('/register')">还没有账号？立即注册</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+  <div class="auth-shell">
+    <section class="auth-visual">
+      <div class="visual-content">
+        <span class="visual-icon"><el-icon :size="32"><Medal /></el-icon></span>
+        <h1>羽毛球馆预约</h1>
+        <p>场馆、场地与时段统一管理</p>
+      </div>
+    </section>
+
+    <section class="auth-form-wrap">
+      <div class="auth-card">
+        <div class="auth-heading">
+          <h2>欢迎回来</h2>
+          <p>登录后继续管理场馆预约</p>
+        </div>
+
+        <el-form ref="formRef" :model="form" :rules="rules" size="large" @submit.prevent>
+          <el-form-item prop="phone">
+            <el-input
+              v-model="form.phone"
+              placeholder="手机号"
+              :prefix-icon="Iphone"
+              autocomplete="username"
+            />
+          </el-form-item>
+          <el-form-item prop="password">
+            <el-input
+              v-model="form.password"
+              type="password"
+              placeholder="密码"
+              :prefix-icon="Lock"
+              show-password
+              autocomplete="current-password"
+              @keyup.enter="handleLogin"
+            />
+          </el-form-item>
+          <el-button
+            type="primary"
+            class="submit-button"
+            :loading="loading"
+            @click="handleLogin"
+          >
+            登录
+            <el-icon class="el-icon--right"><ArrowRight /></el-icon>
+          </el-button>
+        </el-form>
+
+        <div class="auth-switch">
+          <span>还没有账号？</span>
+          <el-button link type="primary" @click="$router.push('/register')">立即注册</el-button>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import api from '@/api'
-import { useUserStore } from '@/store'
+import { reactive, ref } from "vue"
+import { useRouter } from "vue-router"
+import { ElMessage } from "element-plus"
+import { Iphone, Lock, ArrowRight, Medal } from "@element-plus/icons-vue"
+import api from "@/api"
+import { useUserStore } from "@/store"
 
 const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
 const formRef = ref(null)
 
-const form = reactive({ phone: '', password: '' })
+const form = reactive({ phone: "", password: "" })
 const rules = {
   phone: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
-    { pattern: /^1\d{10}$/, message: '手机号格式不正确', trigger: 'blur' },
+    { required: true, message: "请输入手机号", trigger: "blur" },
+    { pattern: /^1\d{10}$/, message: "手机号格式不正确", trigger: "blur" },
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少6位', trigger: 'blur' },
+    { required: true, message: "请输入密码", trigger: "blur" },
+    { min: 6, message: "密码至少6位", trigger: "blur" },
   ],
 }
 
@@ -51,15 +86,14 @@ async function handleLogin() {
     if (!valid) return
     loading.value = true
     try {
-      const res = await api.post('auth/login/', { phone: form.phone, password: form.password })
+      const res = await api.post("auth/login/", { phone: form.phone, password: form.password })
       const { access, refresh, user } = res.data
       userStore.setToken(access, refresh)
       userStore.setUserInfo(user)
-      ElMessage.success('登录成功')
-      // 按角色跳转
-      if (user.role === 'admin') router.push('/admin/dashboard')
-      else if (user.role === 'reception') router.push('/reception/dashboard')
-      else router.push('/')
+      ElMessage.success("登录成功")
+      if (user.role === "admin") router.push("/admin/dashboard")
+      else if (user.role === "reception") router.push("/reception/dashboard")
+      else router.push("/")
     } catch {
       // error handled by interceptor
     } finally {
@@ -70,7 +104,119 @@ async function handleLogin() {
 </script>
 
 <style scoped>
-.login-page { display: flex; align-items: center; justify-content: center; height: 100vh; background: #f0f2f5; }
-.login-card { width: 420px; }
-.login-card h2 { text-align: center; margin-bottom: 24px; }
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 560px);
+  background: var(--mui-surface);
+}
+
+.auth-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: #ffffff;
+  background:
+    linear-gradient(rgba(15, 23, 42, 0.1), rgba(15, 23, 42, 0.12)),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.05) 0,
+      rgba(255, 255, 255, 0.05) 1px,
+      transparent 1px,
+      transparent 18px
+    ),
+    #0f172a;
+  overflow: hidden;
+}
+
+.visual-content {
+  position: relative;
+  z-index: 1;
+  max-width: 460px;
+}
+
+.visual-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.visual-content h1 {
+  margin: 0 0 12px;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.visual-content p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 16px;
+}
+
+.auth-form-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-heading {
+  margin-bottom: 32px;
+}
+
+.auth-heading h2 {
+  margin: 0 0 8px;
+  color: var(--mui-text);
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.auth-heading p {
+  margin: 0;
+  color: var(--mui-muted);
+  font-size: 14px;
+}
+
+.submit-button {
+  width: 100%;
+  height: 46px;
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.auth-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 24px;
+  color: var(--mui-muted);
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-visual {
+    display: none;
+  }
+}
 </style>

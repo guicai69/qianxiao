@@ -3,5 +3,9 @@ from django.urls import path, include
 
 urlpatterns = [
     path('', include('apps.users.urls')),
-    # Future apps will register their routes here
+    path('', include('apps.venues.urls')),
+    path('', include('apps.bookings.urls')),
+    path('', include('apps.payments.urls')),
+    path('', include('apps.stats.urls')),
+    path('', include('apps.announcements.urls')),
 ]

@@ -1,145 +1,217 @@
-# Badminton Venue Management System · 羽毛球馆管理系统
+# 羽毛球馆管理系统
 
-> 毕业设计 — 基于 Python 前后端分离的羽毛球馆管理系统
+> 毕业设计项目，基于 Django REST Framework 和 Vue 3 实现的多场馆、多场地、多时段预约管理系统。
 
----
+## 项目状态
 
-## 一、项目概述
+项目已完成主要业务闭环，当前处于联调与完善阶段。
 
-面向羽毛球馆的日常运营管理系统，支持多场馆、多场地、多时段下的场地预约、会员管理及数据统计分析。系统分为三类用户角色：管理员、前台店员和会员，各自拥有不同的功能权限。
+| 模块 | 状态 |
+|------|------|
+| 项目初始化、前后端工程搭建 | 已完成 |
+| 用户、角色、JWT 登录 | 已完成 |
+| 场馆、场地、时段与定价管理 | 已完成 |
+| 预约、冲突检测、订单管理 | 已完成 |
+| 模拟支付、余额充值、退款 | 已完成 |
+| 数据看板与前台操作台 | 已完成 |
+| 会员等级与折扣 | 已完成 |
+| 前后端联调、回归测试 | 已完成 |
+| 论文、答辩材料与最终文档 | 待完成 |
 
----
+## 技术栈
 
-## 二、技术栈
+| 层级 | 技术 |
+|------|------|
+| 后端 | Python / Django / Django REST Framework |
+| 前端 | Vue 3 / Vite / Element Plus / Pinia / Axios |
+| 数据库 | MySQL |
+| 认证 | SimpleJWT |
+| 可视化 | ECharts |
+| 可选缓存 | Redis，用于后续热点缓存和接口限流扩展 |
 
-| 层级 | 技术选型 |
-|------|----------|
-| **后端** | Python · Django + Django REST Framework |
-| **前端** | Vue 3 + Element Plus（Node.js 生态） |
-| **数据库** | MySQL |
-| **认证** | JWT 无状态认证（djangorestframework-simplejwt） |
-| **缓存** | Redis（JWT 黑名单 / 热点数据缓存 / 接口限流） |
-| **API 文档** | DRF Browsable API / drf-spectacular (OpenAPI) |
-| **数据可视化** | ECharts |
+## 用户与权限
 
----
+系统包含三类角色：
 
-## 三、用户角色
+- 管理员：用户管理、场馆场地管理、预约管理、支付记录、数据看板。
+- 前台：操作台、场馆场地管理、预约管理、支付记录。
+- 会员：场馆浏览、在线预约、余额充值、订单支付、个人中心。
 
-| 角色 | 说明 | 核心职责 |
-|------|------|----------|
-| **管理员** | 系统超级用户 | 全局管理：场馆/场地/价格配置、所有用户管理、数据看板 |
-| **前台店员** | 场馆运营人员 | 代客预约、现场收费、核销订单 |
-| **会员** | C 端普通用户 | 注册登录、浏览场地时段、在线预约、模拟支付、查看消费记录 |
+会员等级与折扣：
 
----
+| 等级 | 折扣 |
+|------|------|
+| 普通会员 `normal` | 原价 100% |
+| 银卡会员 `silver` | 95 折 |
+| 金卡会员 `gold` | 90 折 |
 
-## 四、核心功能模块
+折扣在创建预约时写入订单快照，后续会员等级变化不会影响已生成订单。
 
-### 4.1 场地预约管理（核心）
+## 功能概览
 
-- **场馆管理**：支持多场馆（如「XX羽毛球馆A店」「XX羽毛球馆B店」），每个场馆独立配置
-- **场地管理**：每个场馆下有多片场地（如 1 号场 ~ 6 号场）
-- **时段管理**：每片场地按固定时段划分（如 9:00-10:00、10:00-11:00 …），支持不同时段差异化定价
-- **预约流程**：会员选择场馆 → 选择日期 → 查看可用时段 → 提交预约 → 模拟支付 → 预约成功
-- **冲突检测**：同一场地同一时段不可重复预约
-- **取消预约**：支持在限定时间前取消（如提前 2 小时），超时不可取消
-- **预约记录**：会员查看自己的预约历史；前台/管理员查看所管辖场馆的全部预约
+### 场馆、场地与时段
 
-### 4.2 会员 / 用户体系
+- 场馆 CRUD。
+- 场地 CRUD，并支持按场馆查看。
+- 时段 CRUD，支持不同时段独立定价。
+- 已填充广州地区 5 个场馆示例数据。
 
-- **注册登录**：手机号 + 密码注册，JWT Token 登录，支持 Token 刷新
-- **三角色区分**：注册默认为会员角色；管理员/前台账号由管理员后台创建
-- **个人中心**：查看/编辑个人信息、修改密码
-- **会员等级**：普通会员 / 金卡会员 等，不同等级享受不同折扣
-- **余额充值**：会员在线充值（模拟），前台也可代为充值
-- **消费记录**：会员查看个人充值/消费明细
+### 预约与订单
 
-### 4.3 数据统计看板
+- 会员按日期、场馆、场地、时段预约。
+- 同一场地同一日期同一时段自动检测冲突。
+- 预约创建后弹出支付窗口，或跳转到订单页面继续支付。
+- 待支付订单可由会员自行取消。
+- 已支付订单需由管理员或前台确认取消。
+- 管理员取消已支付订单时自动将实际支付金额退回用户余额，并生成退款记录。
 
-- **营收统计**：按日/周/月统计各场馆营收，支持图表展示
-- **场地使用率**：各场地、各时段的预约率分析
-- **热门时段排行**：统计哪些时段最受欢迎，辅助定价决策
-- **会员统计**：新增会员趋势、会员活跃度分析
-- **可视化**：使用 ECharts 呈现柱状图、折线图、饼图等
+### 支付与余额
 
-### 4.4 模拟支付
+- 支持余额、微信、支付宝三种模拟支付方式。
+- 支持会员余额充值。
+- 充值赠送：充 100 送 10、充 300 送 40、充 500 送 80、充 1000 送 200。
+- 消费累计自动升级会员等级（累计消费满 500 升银卡、满 2000 升金卡，只升不降）。
+- 管理端支付记录展示用户手机号、昵称、类型、金额、赠送、支付方式、关联订单。
+- 支付类型包括：充值、消费、退款。
 
-- 预约提交后进入模拟支付页面
-- 展示订单金额、支付方式选择（余额支付 / 模拟微信 / 模拟支付宝）
-- 点击确认后模拟支付成功，订单状态更新为「已支付」
-- 前台可在系统中标记线下已付款
+### 公告、签到与数据导出
 
----
+- 系统公告：管理端发布/置顶/下线，会员端首页展示。
+- 到店签到核销：已支付订单由管理员/前台签到核销，会员端查看签到状态。
+- 数据导出：预约订单、支付记录支持一键导出 CSV（Excel 可直接打开）。
 
-## 五、非功能性需求
+### 数据统计
 
-- **前后端分离**：前后端完全解耦，通过 RESTful API 通信
-- **权限控制**：基于角色的访问控制（RBAC），不同角色看到不同菜单和功能
-- **响应式布局**：前端适配 PC 端管理后台，会员端可兼顾移动端浏览器
-- **数据校验**：前后端双重校验，保证数据合法性
-- **安全**：JWT 过期刷新、敏感接口权限校验、SQL 防注入（Django ORM）
-- **缓存**：Redis 缓存热点数据（场地可用时段、统计看板），JWT 黑名单防 Token 泄露
+- 今日预约数、待处理数、今日营收、累计营收等总览指标。
+- 各场馆场地数统计。
+- 场馆启用状态统计。
+- 前台操作台每 5 秒自动刷新，页面重新可见时也会立即同步。
 
----
+### 前端界面
 
-## 六、项目结构（规划）
+界面已按 Material Dashboard 风格优化：
 
-```
+- 管理端使用白色侧边栏、卡片化数据面板和现代顶部栏。
+- 会员端使用顶部导航、卡片式场馆列表和预约流程。
+- 登录、注册、数据看板、场馆详情、订单支付等页面已完成视觉统一。
+- 全局路由切换使用 NProgress 顶部进度条（贴合主题主色）。
+- 数据看板新增近 7 日营收趋势（折线+柱状）与热门时段（横向柱状）图表。
+- 前台操作台每 5 秒自动刷新、页面重新可见时立即同步，并展示今日预约列表与营收趋势。
+- 404 页面已按主题重绘，支付记录展示关联订单的场地/日期/时段。
+
+## 目录结构
+
+```text
 E:\毕设\代码\
-├── backend/                 # Django + DRF 后端
-│   ├── manage.py
-│   ├── config/              # Django 配置（settings, urls, wsgi）
-│   │   ├── settings/
-│   │   │   ├── base.py      # 公共配置
-│   │   │   └── dev.py       # 开发环境配置
-│   │   ├── urls.py
-│   │   └── wsgi.py
-│   └── apps/                # Django 应用模块
-│       ├── users/           # 用户 & 认证模块
-│       ├── venues/          # 场馆 & 场地 & 时段模块
-│       ├── bookings/        # 预约 & 订单模块
-│       ├── payments/        # 支付 & 充值模块
-│       └── stats/           # 数据统计模块
-├── frontend/                # Vue 3 + Element Plus 前端
-│   ├── src/
-│   │   ├── api/             # axios 封装 & API 接口
-│   │   ├── components/      # 公共组件
-│   │   ├── layouts/         # 布局组件（管理端 / 会员端）
-│   │   ├── router/          # 路由配置 + 权限守卫
-│   │   ├── store/           # Pinia 状态管理
-│   │   ├── utils/           # 工具函数
-│   │   └── views/           # 页面视图
-│   │       ├── admin/       # 管理员端页面
-│   │       ├── reception/   # 前台端页面
-│   │       └── member/      # 会员端页面
-│   └── package.json
-└── docs/                    # 文档（ER图、API文档、答辩PPT等）
+├── backend/                 # Django 后端
+│   ├── config/              # 配置与路由
+│   ├── apps/
+│   │   ├── users/           # 用户、角色、认证
+│   │   ├── venues/          # 场馆、场地、时段
+│   │   ├── bookings/        # 预约订单
+│   │   ├── payments/        # 充值、消费、退款
+│   │   ├── stats/           # 数据统计
+│   │   └── announcements/   # 系统公告
+│   └── manage.py
+├── frontend/                # Vue 3 前端
+│   └── src/
+│       ├── api/
+│       ├── layouts/
+│       ├── router/
+│       ├── store/
+│       ├── utils/
+│       └── views/
+├── docs/                    # 项目文档
+├── admin-template/          # 参考模板，不参与运行
+└── frontend-backup/         # 前端备份，不参与运行
 ```
 
----
+## 核心数据表
 
-## 七、数据库核心表设计（预览）
+| 表 | 说明 |
+|----|------|
+| `users` | 用户、角色、会员等级、余额、黑名单状态 |
+| `venues` | 场馆 |
+| `courts` | 场地 |
+| `time_slots` | 时段与价格 |
+| `bookings` | 预约订单，包含原价、折扣率、实付金额、签到状态 |
+| `payments` | 充值、消费、退款记录（含充值赠送金额） |
+| `announcements` | 系统公告 |
 
-| 表名 | 说明 | 关键字段 |
-|------|------|----------|
-| `users` | 用户表 | id, phone, password, role(admin/reception/member), level, balance |
-| `venues` | 场馆表 | id, name, address, phone, status |
-| `courts` | 场地表 | id, venue_id(FK), name, status |
-| `time_slots` | 时段表 | id, start_time, end_time, price |
-| `bookings` | 预约订单表 | id, user_id(FK), court_id(FK), date, time_slot_id(FK), status, amount |
-| `payments` | 支付记录表 | id, booking_id(FK), user_id(FK), type(recharge/booking), amount, method, status |
-| `recharges` | 充值记录表 | id, user_id(FK), amount, method, operator_id(FK) |
+## API 概要
 
----
+```text
+POST /api/auth/login/
+POST /api/auth/register/
+POST /api/auth/change-password/
 
-## 八、开发计划
+GET/POST /api/users/
+GET/PATCH /api/users/me/
+POST /api/users/{id}/blacklist/
+POST /api/users/{id}/unblacklist/
 
-- [ ] 阶段一：项目初始化 — 后端 Django 项目搭建、前端 Vue 项目搭建、MySQL 数据库建库  🔧 `init` `db-schema` `django-model`
-- [ ] 阶段二：用户模块 — 注册/登录/JWT 认证、角色管理、个人信息 CRUD  🔧 `django-model` `drf-api` `vue-crud` `review` `security-review` `test`
-- [ ] 阶段三：场馆场地模块 — 场馆/场地/时段的增删改查、定价配置  🔧 `django-model` `drf-api` `vue-crud` `review`
-- [ ] 阶段四：预约模块 — 预约流程、冲突检测、取消、订单管理  🔧 `drf-api` `explore` `review` `test`
-- [ ] 阶段五：支付模块 — 模拟支付、余额充值、消费记录  🔧 `drf-api` `vue-crud` `security-review` `test`
-- [ ] 阶段六：统计看板 — 营收/使用率/热门时段统计、ECharts 可视化  🔧 `research` `explore` `drf-api` `vue-crud` `review`
-- [ ] 阶段七：联调 & 测试 — 前后端联调、Bug 修复、功能完善  🔧 `test` `review` `security-review`
-- [ ] 阶段八：文档 & 答辩 — 撰写论文、整理答辩材料  🔧 `init` `review`
+GET/POST/PATCH/DELETE /api/venues/
+GET/POST/PATCH/DELETE /api/courts/
+GET/POST/PATCH/DELETE /api/time-slots/
+
+GET/POST /api/bookings/
+GET /api/bookings/my/
+POST /api/bookings/{id}/cancel/
+POST /api/bookings/{id}/pay/
+POST /api/bookings/{id}/check_in/
+GET /api/bookings/export_csv/
+
+GET /api/payments/
+POST /api/payments/recharge/
+POST /api/payments/pay/
+GET /api/payments/export_csv/
+
+GET/POST/PATCH/DELETE /api/announcements/
+POST /api/announcements/{id}/toggle_publish/
+POST /api/announcements/{id}/toggle_pin/
+
+GET /api/stats/overview/
+GET /api/stats/revenue_trend/
+GET /api/stats/court_usage/
+GET /api/stats/popular_slots/
+```
+
+## 开发与运行
+
+### 后端
+
+```bash
+cd backend
+python manage.py check
+python manage.py makemigrations
+python manage.py migrate
+python manage.py runserver 0.0.0.0:8000
+```
+
+### 前端
+
+```bash
+cd frontend
+npm install
+npm run dev
+npm run build
+```
+
+开发环境下前端默认地址为 `http://localhost:3000`，代理 `/api` 到后端 `http://localhost:8000`。
+
+## 测试账号
+
+| 角色 | 手机号 | 密码 |
+|------|--------|------|
+| 管理员 | `13800000000` | `admin123` |
+| 前台 | `13900000001` | `123456` |
+| 会员 | `13570417539` | 当前数据库测试账号，密码按测试环境设置 |
+
+会员账号也可以直接通过前端注册页创建。
+
+## 当前已知事项
+
+- `admin-template/` 和 `frontend-backup/` 为参考模板和备份目录，不影响主项目运行。
+- Redis 当前作为可选扩展，不影响 MySQL 和前后端基本运行。
+- 优惠券/折扣券、教练陪练预约、场馆评价等可作为后续扩展项。
+- 2026-08 联调已补齐缺失迁移：`bookings.0002`（订单原价/折扣率字段）与 `users.0004`（会员等级补充银卡），并修复支付列表关联订单字段序列化。

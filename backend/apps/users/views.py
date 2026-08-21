@@ -66,6 +66,19 @@ class ChangePasswordView(generics.GenericAPIView):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('-date_joined')
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        phone = self.request.query_params.get('phone')
+        role = self.request.query_params.get('role')
+        is_blacklisted = self.request.query_params.get('is_blacklisted')
+        if phone:
+            qs = qs.filter(phone__icontains=phone)
+        if role:
+            qs = qs.filter(role=role)
+        if is_blacklisted not in (None, ''):
+            qs = qs.filter(is_blacklisted=is_blacklisted.lower() in ('true', '1'))
+        return qs
+
     def get_serializer_class(self):
         if self.action == 'create':
             return AdminUserCreateSerializer
@@ -93,6 +106,19 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response({'code': 200, 'data': serializer.data})
 
     def perform_destroy(self, instance):
-        """软删除 — 禁用用户"""
-        instance.is_active = False
-        instance.save()
+        """硬删除用户"""
+        instance.delete()
+
+    @action(detail=True, methods=['post'])
+    def blacklist(self, request, pk=None):
+        user = self.get_object()
+        user.is_blacklisted = True
+        user.save(update_fields=['is_blacklisted'])
+        return Response({'code': 200, 'message': '已拉黑'})
+
+    @action(detail=True, methods=['post'])
+    def unblacklist(self, request, pk=None):
+        user = self.get_object()
+        user.is_blacklisted = False
+        user.save(update_fields=['is_blacklisted'])
+        return Response({'code': 200, 'message': '已取消拉黑'})

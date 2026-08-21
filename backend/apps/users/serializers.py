@@ -52,11 +52,19 @@ class LoginSerializer(serializers.Serializer):
 
 class UserInfoSerializer(serializers.ModelSerializer):
     """个人 / 列表信息"""
+    discount_rate = serializers.SerializerMethodField()
+    total_spend = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['id', 'phone', 'nickname', 'role', 'level', 'balance',
-                  'date_joined', 'last_login', 'is_active']
+                  'discount_rate', 'total_spend', 'date_joined', 'last_login', 'is_active']
+
+    def get_discount_rate(self, obj):
+        return str(obj.get_discount_rate())
+
+    def get_total_spend(self, obj):
+        return str(obj.get_total_spend())
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
@@ -119,4 +127,4 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['nickname', 'role', 'level', 'is_active']
+        fields = ['nickname', 'role', 'level', 'is_active', 'is_blacklisted']

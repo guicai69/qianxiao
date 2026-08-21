@@ -101,4 +101,22 @@ frontend/src/
 
 - 开发阶段 MySQL 8.4 通过 Windows 服务 MySQL84 管理；若服务不可用，可用 SQLite 兜底（base.py 中已注释）
 - 阶段一已完成：项目骨架 + 自定义 User 迁移 + 前后端可构建
-- 下一阶段：阶段二 — 用户模块（注册/登录/JWT 认证/角色管理）
+- 阶段二已完成：用户模块（注册/登录/JWT 认证/角色管理/权限体系）
+- 阶段三已完成：场馆场地模块（Venue/Court/TimeSlot CRUD + 定价配置 + 前端管理页面）
+- 已填充广州5个场馆数据（天河6场/海珠5场/白云4场/番禺4场/越秀5场）+ 各14个时段 ¥30-120
+- 前端模板 vue-element-plus-admin (29k星) 已下载至 admin-template/ 供参考
+
+### 当前运行服务
+
+| 服务 | 端口 | 命令 |
+|------|------|------|
+| Django API | :8000 | cd backend && python manage.py runserver 0.0.0.0:8000 |
+| 前端 Dev Server | :3000 | cd frontend && npm run dev |
+
+### 测试账号
+
+| 角色 | 手机号 | 密码 | 入口 |
+|------|--------|------|------|
+| 管理员 | 13800000000 | admin123 | /admin/dashboard |
+| 前台 | 13900000001 | 123456 | /admin/dashboard |
+| 会员 | 13800138001 | 123456 | / |
