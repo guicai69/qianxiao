@@ -34,3 +34,10 @@ mysql-data/
 
 # MCP / tools
 mcp-servers/
+
+# Workspace metadata
+.reasonix/
+
+# Reference template & backups
+admin-template/
+frontend-backup/
