@@ -2,9 +2,9 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export const useUserStore = defineStore('user', () => {
-  const token = ref(localStorage.getItem('access_token') || '')
-  const refreshToken = ref(localStorage.getItem('refresh_token') || '')
-  const userInfo = ref(JSON.parse(localStorage.getItem('user_info') || 'null'))
+  const token = ref(sessionStorage.getItem('access_token') || '')
+  const refreshToken = ref(sessionStorage.getItem('refresh_token') || '')
+  const userInfo = ref(JSON.parse(sessionStorage.getItem('user_info') || 'null'))
 
   const isLoggedIn = computed(() => !!token.value)
   const role = computed(() => userInfo.value?.role || '')
@@ -15,22 +15,22 @@ export const useUserStore = defineStore('user', () => {
   function setToken(access, refresh) {
     token.value = access
     refreshToken.value = refresh
-    localStorage.setItem('access_token', access)
-    localStorage.setItem('refresh_token', refresh)
+    sessionStorage.setItem('access_token', access)
+    sessionStorage.setItem('refresh_token', refresh)
   }
 
   function clearToken() {
     token.value = ''
     refreshToken.value = ''
     userInfo.value = null
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('user_info')
+    sessionStorage.removeItem('access_token')
+    sessionStorage.removeItem('refresh_token')
+    sessionStorage.removeItem('user_info')
   }
 
   function setUserInfo(info) {
     userInfo.value = info
-    localStorage.setItem('user_info', JSON.stringify(info))
+    sessionStorage.setItem('user_info', JSON.stringify(info))
   }
 
   function hasPermission(requiredRole) {

@@ -57,6 +57,20 @@ class RechargeMethodTests(APITestCase):
         self.assertEqual(r.status_code, 400)
 
 
+class PaymentIsolationTests(APITestCase):
+    def test_member_list_shows_only_own_payments(self):
+        a = make_user('13800000001')
+        b = make_user('13800000002')
+        Payment.objects.create(user=a, type='recharge', amount='100.00', method='wechat', status='success')
+        Payment.objects.create(user=b, type='recharge', amount='50.00', method='wechat', status='success')
+        self.client.force_authenticate(user=a)
+        r = self.client.get('/api/payments/')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(r.data['results'][0]['amount'], '100.00')
+        self.assertEqual(r.data['results'][0]['user_phone'], '13800000001')
+
+
 class PayTimeoutTests(APITestCase):
     def test_stale_pending_pay_rejected(self):
         member = make_user('13800000001', balance='1000')

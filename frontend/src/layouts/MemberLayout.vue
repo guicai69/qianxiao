@@ -15,6 +15,16 @@
       </nav>
 
       <div class="member-actions">
+        <el-button
+          v-if="userStore.isAdmin || userStore.isReception"
+          type="primary"
+          plain
+          round
+          size="small"
+          @click="goHome"
+        >
+          <el-icon class="el-icon--left"><Back /></el-icon>返回管理后台
+        </el-button>
         <template v-if="userStore.isLoggedIn">
           <div class="balance-chip">
             <el-icon><Wallet /></el-icon>
@@ -53,7 +63,7 @@
 import { computed } from "vue"
 import { useRouter } from "vue-router"
 import { useUserStore } from "@/store"
-import { Medal, Wallet, ArrowDown } from "@element-plus/icons-vue"
+import { Medal, Wallet, ArrowDown, Back } from "@element-plus/icons-vue"
 
 const userStore = useUserStore()
 const router = useRouter()
