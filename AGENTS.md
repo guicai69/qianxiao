@@ -120,3 +120,13 @@ frontend/src/
 | 管理员 | 13800000000 | admin123 | /admin/dashboard |
 | 前台 | 13900000001 | 123456 | /admin/dashboard |
 | 会员 | 13800138001 | 123456 | / |
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked as GitHub issues in `guicai69/qianxiao`, using the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` at the repo root plus `docs/adr/`. See `docs/agents/domain.md`.
