@@ -3,6 +3,7 @@ import api from '@/api'
 export const venueApi = {
   list(params) { return api.get('venues/', params) },
   detail(id) { return api.get(`venues/${id}/`) },
+  availability(id, params) { return api.get(`venues/${id}/availability/`, params) },
   create(data) { return api.post('venues/', data) },
   update(id, data) { return api.patch(`venues/${id}/`, data) },
   delete(id) { return api.delete(`venues/${id}/`) },

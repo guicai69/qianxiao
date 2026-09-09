@@ -64,11 +64,12 @@ class User(AbstractUser):
         return self.DISCOUNT_RATES.get(self.level, Decimal('1.00'))
 
     def get_total_spend(self):
-        """累计消费金额（已支付订单）"""
+        """累计消费金额（已支付订单 + 已取消订单的手续费）"""
         from django.db.models import Sum
         from apps.bookings.models import Booking
-        agg = Booking.objects.filter(user=self, status='paid').aggregate(s=Sum('amount'))
-        return agg['s'] or Decimal('0')
+        paid = Booking.objects.filter(user=self, status='paid').aggregate(s=Sum('amount'))['s'] or Decimal('0')
+        fee = Booking.objects.filter(user=self, status='cancelled').aggregate(s=Sum('fee_amount'))['s'] or Decimal('0')
+        return paid + fee
 
     def refresh_level_from_spend(self):
         """根据累计消费自动升级会员等级（只升级不降级），返回是否发生变化"""

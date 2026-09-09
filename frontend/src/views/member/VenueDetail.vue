@@ -50,6 +50,7 @@
             :disabled-date="disabledDate"
             placeholder="选择日期"
             style="width: 220px"
+            @change="fetchBookings"
           />
         </div>
 
@@ -266,12 +267,8 @@ async function fetchBookings() {
   if (!bookDate.value || !venue.value) return
   bookingLoading.value = true
   try {
-    const res = await bookingApi.list({
-      date: bookDate.value,
-      venue: venue.value.id,
-      page_size: 200,
-    })
-    bookedSlots.value = res.results || []
+    const res = await venueApi.availability(venue.value.id, { date: bookDate.value })
+    bookedSlots.value = res.occupied || []
   } catch {
     bookedSlots.value = []
   } finally {
@@ -283,7 +280,7 @@ function isSlotBooked(slot) {
   const courtId = selectedCourt.value?.id
   if (!courtId) return false
   return bookedSlots.value.some(
-    (b) => b.court === courtId && b.time_slot === slot.id && b.status !== "cancelled"
+    (o) => o.court_id === courtId && o.time_slot_id === slot.id
   )
 }
 

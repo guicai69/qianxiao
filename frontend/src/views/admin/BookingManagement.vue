@@ -73,6 +73,7 @@ import { ref, reactive, onMounted } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { Download } from "@element-plus/icons-vue"
 import { bookingApi } from "@/api/bookings"
+import { paymentApi } from "@/api/payments"
 import { venueApi } from "@/api/venues"
 import { downloadBlob } from "@/utils/download"
 
@@ -105,7 +106,7 @@ async function fetchData() {
 function reset() { query.page = 1; query.date = ""; query.venue = ""; query.status = ""; fetchData() }
 
 async function handlePay(row) {
-  try { await ElMessageBox.confirm("确认收到该订单的款项？", "收款确认", { type: "info" }); await bookingApi.pay(row.id); ElMessage.success("已支付"); fetchData() } catch {}
+  try { await ElMessageBox.confirm("确认收到该订单的款项？", "收款确认", { type: "info" }); await paymentApi.confirmCash({ booking_id: row.id }); ElMessage.success("已支付"); fetchData() } catch {}
 }
 async function handleCancel(row) {
   try {

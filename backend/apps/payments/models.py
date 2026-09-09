@@ -16,10 +16,12 @@ class Payment(models.Model):
     METHOD_BALANCE = 'balance'
     METHOD_WECHAT = 'wechat'
     METHOD_ALIPAY = 'alipay'
+    METHOD_CASH = 'cash'
     METHOD_CHOICES = [
         (METHOD_BALANCE, '余额支付'),
         (METHOD_WECHAT, '微信支付'),
         (METHOD_ALIPAY, '支付宝'),
+        (METHOD_CASH, '现金'),
     ]
 
     STATUS_PENDING = 'pending'

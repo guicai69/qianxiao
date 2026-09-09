@@ -1,4 +1,4 @@
-﻿from rest_framework import viewsets
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -8,6 +8,7 @@ from datetime import timedelta
 
 from apps.venues.models import Venue, Court
 from apps.bookings.models import Booking
+from apps.payments.models import Payment
 from apps.users.models import User
 from apps.users.permissions import IsAdminOrReception
 
@@ -21,6 +22,9 @@ class StatsViewSet(viewsets.ViewSet):
         today_bookings = Booking.objects.filter(date=today)
         today_revenue_agg = today_bookings.filter(status="paid").aggregate(t=Sum("amount"))["t"] or 0
         total_revenue_agg = Booking.objects.filter(status="paid").aggregate(t=Sum("amount"))["t"] or 0
+        total_recharge = Payment.objects.filter(type=Payment.TYPE_RECHARGE, status=Payment.STATUS_SUCCESS).aggregate(s=Sum("amount"))["s"] or 0
+        total_bonus = Payment.objects.filter(type=Payment.TYPE_RECHARGE, status=Payment.STATUS_SUCCESS).aggregate(s=Sum("bonus"))["s"] or 0
+        total_refund = Payment.objects.filter(type=Payment.TYPE_REFUND, status=Payment.STATUS_SUCCESS).aggregate(s=Sum("amount"))["s"] or 0
         return Response({
             "total_venues": Venue.objects.count(),
             "total_courts": Court.objects.count(),
@@ -30,6 +34,9 @@ class StatsViewSet(viewsets.ViewSet):
             "today_paid": today_bookings.filter(status="paid").count(),
             "today_revenue": float(today_revenue_agg),
             "total_revenue": float(total_revenue_agg),
+            "total_recharge": float(total_recharge),
+            "total_bonus": float(total_bonus),
+            "total_refund": float(total_refund),
         })
 
     @action(detail=False, methods=["get"])

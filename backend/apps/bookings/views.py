@@ -1,10 +1,10 @@
 import csv
 
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import F
@@ -15,10 +15,12 @@ from decimal import Decimal
 from .models import Booking
 from .serializers import (
     BookingListSerializer, BookingDetailSerializer,
-    BookingCreateSerializer, BookingUpdateStatusSerializer,
+    BookingCreateSerializer,
 )
+from .utils import cancel_expired_pendings, FREE_CANCEL_WINDOW, CANCEL_FEE_RATE
 from apps.payments.models import Payment
-from apps.users.permissions import IsAdmin, IsAdminOrReception
+from apps.users.permissions import IsAdminOrReception
+from apps.venues.models import Court
 
 User = get_user_model()
 
@@ -40,6 +42,7 @@ class BookingViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated()]
         return [IsAdminOrReception()]
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -78,7 +81,20 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         court = serializer.validated_data['court']
+        date = serializer.validated_data['date']
         time_slot = serializer.validated_data['time_slot']
+
+        # 惰性取消过期未支付订单，释放被占坑的时段
+        cancel_expired_pendings()
+
+        # 锁场地行，串行化同场地的下单，配合 occupancy_key 唯一索引防并发双写
+        Court.objects.select_for_update().get(pk=court.pk)
+        if Booking.objects.filter(
+            court=court, date=date, time_slot=time_slot,
+            status__in=['pending', 'paid'],
+        ).exists():
+            raise serializers.ValidationError('该时段已被预约，请选择其他时段')
+
         original_amount = time_slot.price
         discount_rate = self.request.user.get_discount_rate()
         amount = (original_amount * discount_rate).quantize(Decimal('0.01'))
@@ -95,52 +111,64 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         if booking.status == 'cancelled':
             return Response({'detail': '该订单已取消'}, status=400)
-        if booking.status == 'paid' and request.user.role not in ('admin', 'reception'):
-            return Response(
-                {'detail': '已支付订单需由管理员或前台确认后取消'},
-                status=403,
-            )
         if booking.status not in ['pending', 'paid']:
             return Response({'detail': '该订单状态不可取消'}, status=400)
 
+        is_staff = request.user.role in ('admin', 'reception')
+        was_paid = booking.status == 'paid'
+        refund_amount = Decimal('0')
+        fee_amount = Decimal('0')
+
+        if was_paid:
+            slot_start = datetime.combine(
+                booking.date, booking.time_slot.start_time,
+                tzinfo=timezone.get_current_timezone(),
+            )
+            now = timezone.now()
+            if now >= slot_start:
+                # 已过开场：不可退款（管理员/前台可关闭，但不退）
+                if not is_staff:
+                    return Response({'detail': '已过开场时间，不可取消'}, status=403)
+                fee_amount = booking.amount
+            elif (slot_start - now) > FREE_CANCEL_WINDOW:
+                # 开场前 2 小时外：免费取消，全额退款（会员可自助）
+                refund_amount = booking.amount
+            else:
+                # 开场前 2 小时内且未开场：扣 20% 手续费
+                if not is_staff:
+                    return Response({'detail': '距开场不足 2 小时，需联系管理员或前台取消'}, status=403)
+                fee_amount = (booking.amount * CANCEL_FEE_RATE).quantize(Decimal('0.01'))
+                refund_amount = booking.amount - fee_amount
+
+        booking = Booking.objects.select_for_update().select_related('user').get(pk=booking.pk)
+        user = booking.user
         data = {}
-        refunded_user = None
-        if booking.status == 'paid':
-            booking = Booking.objects.select_for_update().select_related('user').get(pk=booking.pk)
-            user = booking.user
-            User.objects.filter(pk=user.pk).update(balance=F('balance') + booking.amount)
+        if refund_amount > 0:
+            User.objects.filter(pk=user.pk).update(balance=F('balance') + refund_amount)
             user.refresh_from_db()
             Payment.objects.create(
                 user=user,
                 booking=booking,
                 type=Payment.TYPE_REFUND,
-                amount=booking.amount,
+                amount=refund_amount,
                 method=Payment.METHOD_BALANCE,
                 status=Payment.STATUS_SUCCESS,
             )
-            refunded_user = user
             data = {
-                'refund_amount': str(booking.amount),
+                'refund_amount': str(refund_amount),
+                'fee_amount': str(fee_amount),
                 'balance': str(user.balance),
             }
 
         booking.status = 'cancelled'
-        booking.save(update_fields=['status'])
+        booking.fee_amount = fee_amount
+        booking.save()
 
-        # 退款后消费减少，重算会员等级
-        if refunded_user:
-            refunded_user.refresh_level_from_spend()
+        # 退款后消费减少，重算会员等级（手续费保留在累计消费中）
+        if was_paid:
+            user.refresh_level_from_spend()
 
         return Response({'code': 200, 'message': '已取消', 'data': data})
-
-    @action(detail=True, methods=['post'])
-    def pay(self, request, pk=None):
-        booking = self.get_object()
-        if booking.status != 'pending':
-            return Response({'error': '只有待支付订单可支付'}, status=400)
-        booking.status = 'paid'
-        booking.save(update_fields=['status'])
-        return Response({'code': 200, 'message': '已支付'})
 
     @action(detail=False, methods=['get'])
     def my(self, request):
@@ -160,6 +188,8 @@ class BookingViewSet(viewsets.ModelViewSet):
             return Response({'detail': '只有已支付订单可签到'}, status=400)
         if booking.checked_in:
             return Response({'detail': '该订单已签到'}, status=400)
+        if booking.date != timezone.localdate():
+            return Response({'detail': '签到日期必须与预约日期一致'}, status=400)
         booking.checked_in = True
         booking.checked_in_at = timezone.now()
         booking.save(update_fields=['checked_in', 'checked_in_at'])

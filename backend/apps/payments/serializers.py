@@ -29,7 +29,7 @@ class PaymentDetailSerializer(serializers.ModelSerializer):
 class RechargeSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
     method = serializers.ChoiceField(
-        choices=[('balance', '余额'), ('wechat', '微信'), ('alipay', '支付宝')],
+        choices=[('wechat', '微信'), ('alipay', '支付宝')],
         default='wechat',
     )
 

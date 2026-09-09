@@ -1,3 +1,5 @@
+from datetime import date
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -5,6 +7,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count
 
 from .models import Venue, Court, TimeSlot
+from apps.bookings.models import Booking
+from apps.bookings.utils import cancel_expired_pendings
 from .serializers import (
     VenueListSerializer, VenueDetailSerializer, VenueCreateSerializer, VenueUpdateSerializer,
     CourtListSerializer, CourtDetailSerializer, CourtCreateSerializer, CourtUpdateSerializer,
@@ -36,11 +40,32 @@ class VenueViewSet(viewsets.ModelViewSet):
         return VenueDetailSerializer
 
     def get_permissions(self):
-        if self.action == 'list':
-            return [IsAuthenticated()]
-        if self.action == 'retrieve':
+        if self.action in ('list', 'retrieve', 'availability'):
             return [IsAuthenticated()]
         return [IsAdminOrReception()]
+
+    @action(detail=True, methods=['get'])
+    def availability(self, request, pk=None):
+        """返回指定日期被占用的时段（仅 court_id + time_slot_id，不含用户信息）"""
+        venue = self.get_object()
+        date_str = request.query_params.get('date')
+        if not date_str:
+            return Response({'detail': '缺少 date 参数'}, status=400)
+        try:
+            bdate = date.fromisoformat(date_str)
+        except ValueError:
+            return Response({'detail': 'date 参数格式错误'}, status=400)
+
+        cancel_expired_pendings()
+
+        qs = Booking.objects.filter(
+            court__venue=venue, date=bdate,
+        ).exclude(status='cancelled')
+        occupied = [
+            {'court_id': b.court_id, 'time_slot_id': b.time_slot_id}
+            for b in qs
+        ]
+        return Response({'date': date_str, 'occupied': occupied})
 
     @action(detail=True, methods=['patch'])
     def toggle_active(self, request, pk=None):

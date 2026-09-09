@@ -27,7 +27,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Booking
-        fields = '__all__'
+        exclude = ('occupancy_key',)
 
 
 class BookingCreateSerializer(serializers.ModelSerializer):
@@ -40,12 +40,6 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         date = attrs['date']
         time_slot = attrs['time_slot']
 
-        if Booking.objects.filter(
-            court=court, date=date, time_slot=time_slot,
-            status__in=['pending', 'paid'],
-        ).exists():
-            raise serializers.ValidationError('该时段已被预约，请选择其他时段')
-
         from datetime import date as d
         if date < d.today():
             raise serializers.ValidationError('不可预约过去的日期')
@@ -56,8 +50,3 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('该时段已停用')
 
         return attrs
-
-
-class BookingUpdateStatusSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=['cancelled', 'paid'])
-    note = serializers.CharField(required=False, allow_blank=True)

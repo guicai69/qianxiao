@@ -48,8 +48,16 @@ class Booking(models.Model):
     discount_rate = models.DecimalField(
         '折扣率', max_digits=4, decimal_places=2, null=True, blank=True,
     )
+    fee_amount = models.DecimalField(
+        '手续费', max_digits=10, decimal_places=2, default=0,
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    # 占用唯一键：已支付订单 = court-date-slot，数据库级防双写（非已支付为 NULL，MySQL 唯一索引允许多个 NULL）
+    occupancy_key = models.CharField(
+        '占用唯一键', max_length=64, null=True, blank=True, unique=True,
+        editable=False,
+    )
 
     class Meta:
         db_table = 'bookings'
@@ -61,6 +69,13 @@ class Booking(models.Model):
             models.Index(fields=['court', 'date']),
             models.Index(fields=['date', 'status']),
         ]
+
+    def save(self, *args, **kwargs):
+        if self.status == self.STATUS_PAID:
+            self.occupancy_key = f'{self.court_id}-{self.date}-{self.time_slot_id}'
+        else:
+            self.occupancy_key = None
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user.nickname or self.user.phone} @ {self.court.name} {self.date}"

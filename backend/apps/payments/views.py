@@ -1,4 +1,5 @@
 import csv
+from datetime import timedelta
 from decimal import Decimal
 
 from rest_framework import viewsets, status, generics
@@ -16,6 +17,7 @@ from .serializers import (
 )
 from apps.users.permissions import IsAdminOrReception
 from apps.bookings.models import Booking
+from apps.bookings.utils import PENDING_TIMEOUT_MINUTES
 
 # 充值赠送档位：充满 threshold 送 gift（取最高档）
 RECHARGE_BONUS_TIERS = [
@@ -112,6 +114,17 @@ class PaymentViewSet(viewsets.ModelViewSet):
         if booking.status != 'pending':
             return Response({'code': 400, 'message': '订单状态不正确，当前状态：' + booking.get_status_display()}, status=400)
 
+        if timezone.now() - booking.created_at > timedelta(minutes=PENDING_TIMEOUT_MINUTES):
+            booking.status = 'cancelled'
+            booking.save()
+            return Response({'code': 400, 'message': '订单已超时，请重新预约'}, status=400)
+
+        if Booking.objects.filter(
+            court_id=booking.court_id, date=booking.date,
+            time_slot_id=booking.time_slot_id, status='paid',
+        ).exclude(pk=booking.pk).exists():
+            return Response({'code': 400, 'message': '该时段已被预约'}, status=400)
+
         if method == 'balance':
             if user.balance < booking.amount:
                 return Response({'code': 400, 'message': '余额不足，当前余额：¥' + str(user.balance)}, status=400)
@@ -119,7 +132,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
             user.save(update_fields=['balance'])
 
         booking.status = 'paid'
-        booking.save(update_fields=['status'])
+        booking.save()
 
         payment = Payment.objects.create(
             user=user, booking=booking, type=Payment.TYPE_BOOKING,
@@ -138,6 +151,54 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 'booking_status': booking.status,
                 'level_upgraded': upgraded,
                 'level': user.level,
+            },
+        })
+
+    @action(detail=False, methods=['post'])
+    @transaction.atomic
+    def confirm_cash(self, request):
+        """线下现金收款确认（管理员/前台）——按订单金额全额、不可改"""
+        booking_id = request.data.get('booking_id')
+        try:
+            booking = Booking.objects.select_for_update().get(id=booking_id)
+        except (Booking.DoesNotExist, ValueError, TypeError):
+            return Response({'code': 400, 'message': '订单不存在'}, status=400)
+
+        if booking.status != 'pending':
+            return Response(
+                {'code': 400, 'message': '订单状态不正确，当前状态：' + booking.get_status_display()},
+                status=400,
+            )
+
+        if timezone.now() - booking.created_at > timedelta(minutes=PENDING_TIMEOUT_MINUTES):
+            booking.status = 'cancelled'
+            booking.save()
+            return Response({'code': 400, 'message': '订单已超时，请重新预约'}, status=400)
+
+        if Booking.objects.filter(
+            court_id=booking.court_id, date=booking.date,
+            time_slot_id=booking.time_slot_id, status='paid',
+        ).exclude(pk=booking.pk).exists():
+            return Response({'code': 400, 'message': '该时段已被预约'}, status=400)
+
+        booking.status = 'paid'
+        booking.save()
+
+        payment = Payment.objects.create(
+            user=booking.user, booking=booking, type=Payment.TYPE_BOOKING,
+            amount=booking.amount, method=Payment.METHOD_CASH,
+            status=Payment.STATUS_SUCCESS,
+        )
+
+        # 消费后自动升级会员等级
+        booking.user.refresh_level_from_spend()
+
+        return Response({
+            'code': 200, 'message': '收款确认成功',
+            'data': {
+                'payment_id': payment.id,
+                'booking_id': booking.id,
+                'amount': str(booking.amount),
             },
         })
 

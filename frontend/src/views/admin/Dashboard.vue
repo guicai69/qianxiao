@@ -120,6 +120,9 @@ import {
   Calendar,
   Money,
   TrendCharts,
+  Wallet,
+  Coin,
+  RefreshLeft,
 } from "@element-plus/icons-vue"
 
 const barChartRef = ref(null)
@@ -179,6 +182,27 @@ const summaryCards = computed(() => [
     color: "#0ea5e9",
     soft: "#f0f9ff",
     icon: TrendCharts,
+  },
+  {
+    label: "充值总额",
+    value: "¥" + (Number(statsData.value?.total_recharge || 0)).toFixed(2),
+    color: "#8b5cf6",
+    soft: "#f5f3ff",
+    icon: Wallet,
+  },
+  {
+    label: "赠送总额",
+    value: "¥" + (Number(statsData.value?.total_bonus || 0)).toFixed(2),
+    color: "#ec4899",
+    soft: "#fdf2f8",
+    icon: Coin,
+  },
+  {
+    label: "退款总额",
+    value: "¥" + (Number(statsData.value?.total_refund || 0)).toFixed(2),
+    color: "#f59e0b",
+    soft: "#fffbeb",
+    icon: RefreshLeft,
   },
 ])
 

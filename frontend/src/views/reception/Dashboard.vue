@@ -155,6 +155,7 @@ import {
 } from "@element-plus/icons-vue"
 import { statsApi } from "@/api/stats"
 import { bookingApi } from "@/api/bookings"
+import { paymentApi } from "@/api/payments"
 
 const stats = ref({ today_bookings: 0, today_pending: 0, today_revenue: 0 })
 const todayBookings = ref([])
@@ -254,7 +255,7 @@ function initChart() {
 async function handlePay(row) {
   try {
     await ElMessageBox.confirm("确认收到该订单的款项？", "收款确认", { type: "info" })
-    await bookingApi.pay(row.id)
+    await paymentApi.confirmCash({ booking_id: row.id })
     ElMessage.success("已支付")
     refresh()
   } catch {
