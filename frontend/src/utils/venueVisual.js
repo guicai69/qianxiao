@@ -1,12 +1,14 @@
 // 场馆 → 印相表格子上的编号与封面
 // 编号跟着区走，保证列表顺序变化时 01–05 不会乱跳。
 
+// 封面用球场图纸（1200x800 SVG，同一族、等尺寸、不含人物）。
+// 想换成实拍照片：把文件丢进 frontend/public/img/ 再改这里即可。
 const DISTRICTS = [
-  { key: '天河', file: '/img/venue-tianhe.jpg' },
-  { key: '海珠', file: '/img/venue-haizhu.jpg' },
-  { key: '白云', file: '/img/venue-baiyun.jpg' },
-  { key: '番禺', file: '/img/venue-panyu.jpg' },
-  { key: '越秀', file: '/img/venue-yuexiu.jpg' },
+  { key: '天河', file: '/img/court-01.svg' },
+  { key: '海珠', file: '/img/court-02.svg' },
+  { key: '白云', file: '/img/court-03.svg' },
+  { key: '番禺', file: '/img/court-04.svg' },
+  { key: '越秀', file: '/img/court-05.svg' },
 ]
 
 const FALLBACK_COVERS = DISTRICTS.map((d) => d.file)

@@ -97,7 +97,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: saturate(0.86) contrast(1.06) brightness(0.97);
+  filter: saturate(0.92) contrast(1.05) brightness(1.02);
 }
 
 .photo::after {
@@ -106,11 +106,11 @@
   inset: 0;
   pointer-events: none;
   mix-blend-mode: multiply;
-  background: linear-gradient(180deg, rgba(60, 46, 22, 0.06) 0%, rgba(11, 16, 14, 0.42) 100%);
+  background: linear-gradient(180deg, rgba(20, 44, 96, 0.04) 0%, rgba(16, 32, 64, 0.3) 100%);
 }
 
 .photo--flat::after {
-  background: linear-gradient(180deg, rgba(60, 46, 22, 0.05) 0%, rgba(20, 32, 26, 0.18) 100%);
+  background: linear-gradient(180deg, rgba(20, 44, 96, 0.03) 0%, rgba(16, 32, 64, 0.16) 100%);
 }
 
 /* ---------- 接触印相表：一排球场就是一张印相表 ---------- */
@@ -125,16 +125,10 @@
   .sheet { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (min-width: 1024px) {
-  .sheet { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-
-  /* 首页的印相表用不齐的格子：第一格占两格宽，五格刚好铺满两行，不留洞 */
-  .sheet--index { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .sheet--index > :nth-child(1) { grid-column: span 4; }
-  /* 3.2:1 是为了让这一格的照片高度和旁边两格一格宽的照片高度对齐，
-     不然一行里会长短不齐，卡片底下留出一块白 */
-  .sheet--index > :nth-child(1) .frame__media { aspect-ratio: 3.2 / 1; }
-  .sheet--index > :nth-child(n + 2) { grid-column: span 2; }
+/* 印相表的格子一律等大：真印相表本来就是等格距的，
+   宽屏一行放满五格，窄屏自动减列 */
+@media (min-width: 640px) {
+  .sheet { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
 }
 
 .frame {
@@ -159,21 +153,21 @@
 .frame__media {
   position: relative;
   flex: none;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 3 / 2;
   overflow: hidden;
   /* 照片没加载出来时，露出的是一块球场地板，不是一块灰 */
-  background-color: #17281f;
+  background-color: #e3ecf9;
   background-image:
-    linear-gradient(90deg, transparent calc(50% - 1px), rgba(248, 252, 246, 0.14) 50%, transparent calc(50% + 1px)),
-    linear-gradient(0deg, transparent calc(50% - 1px), rgba(248, 252, 246, 0.14) 50%, transparent calc(50% + 1px)),
-    radial-gradient(60% 50% at 50% 50%, rgba(232, 163, 61, 0.12), transparent 72%);
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(26, 95, 208, 0.22) 50%, transparent calc(50% + 1px)),
+    linear-gradient(0deg, transparent calc(50% - 1px), rgba(26, 95, 208, 0.22) 50%, transparent calc(50% + 1px)),
+    radial-gradient(60% 50% at 50% 50%, rgba(26, 95, 208, 0.1), transparent 72%);
 }
 
 .frame__media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: saturate(0.86) contrast(1.06) brightness(0.97);
+  filter: saturate(0.92) contrast(1.05) brightness(1.02);
   transition: transform var(--dur-4) var(--ease-out);
 }
 
@@ -182,7 +176,7 @@
   inset: 0;
   pointer-events: none;
   mix-blend-mode: multiply;
-  background: linear-gradient(180deg, rgba(60, 46, 22, 0.06) 0%, rgba(11, 16, 14, 0.42) 100%);
+  background: linear-gradient(180deg, rgba(20, 44, 96, 0.04) 0%, rgba(16, 32, 64, 0.3) 100%);
 }
 
 .frame__no {
@@ -192,7 +186,7 @@
   z-index: 2;
   padding: 3px 8px;
   border-radius: 999px;
-  background: rgba(11, 16, 14, 0.62);
+  background: rgba(16, 32, 64, 0.58);
   border: 1px solid rgba(255, 255, 255, 0.16);
   color: #f4f6f1;
   font-family: var(--font-mono);
@@ -416,11 +410,22 @@
   }
 }
 
-/* 数字滚动到位：只用 transform/opacity */
+/* 滚动错峰：同一行的格子按 --i 依次显影（改的是进度区间，不是时长） */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal-stagger {
+      animation: rise-in linear both;
+      animation-timeline: view();
+      animation-range: entry calc(2% + var(--i, 0) * 5%) cover calc(24% + var(--i, 0) * 5%);
+    }
+  }
+}
+
+/* 数字入场（后台 KPI 磁贴在用）：淡入 + 上移 */
 @media (prefers-reduced-motion: no-preference) {
   .count-up {
     animation: count-in 700ms var(--ease-out) both;
-    animation-delay: calc(var(--i, 0) * 90ms);
+    animation-delay: calc(var(--i, 0) * 55ms);
   }
 }
 
@@ -432,5 +437,111 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ---------- 标题逐字揭开（中文按字拆，不是按词） ---------- */
+
+.split {
+  display: inline-block;
+}
+
+.split .ch {
+  display: inline-block;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .split .ch {
+    animation: ch-in 680ms var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 42ms + var(--d, 0) * 1ms);
+  }
+}
+
+@keyframes ch-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.44em) rotate(1.5deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- 数字滚动到位：外层裁切，内层从下方滑上来 ---------- */
+
+.roll {
+  display: block;
+  overflow: hidden;
+}
+
+.roll > span {
+  display: block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .roll > span {
+    animation: roll-in 820ms var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 110ms + 120ms);
+  }
+}
+
+@keyframes roll-in {
+  from {
+    transform: translateY(108%);
+    opacity: 0.15;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* ---------- 逐格落位：棋盘 / 列表按行依次到位 ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .drop-in {
+    animation: drop-in 520ms var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 22ms);
+  }
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- 鼠标跟随的冷光（只有精确指针设备才开） ---------- */
+
+.cursor-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-4) var(--ease-out);
+  background: radial-gradient(
+    340px 340px at var(--mx, 62%) var(--my, 42%),
+    rgba(26, 95, 208, 0.16),
+    transparent 72%
+  );
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .court-stage:hover ~ .cursor-light,
+  .hero:hover .cursor-light {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-light {
+    display: none;
   }
 }

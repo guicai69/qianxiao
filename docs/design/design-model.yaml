@@ -3,12 +3,12 @@
 version: 1
 project: 羽毛球馆预约管理系统
 branch: ui/finesse
-updated: 2026-09-19
+updated: 2026-09-19  (第二轮：蓝白 / 无人照片 / 动效加强)
 
 registers:
   brand:
     pages: [views/member/Home.vue, views/Login.vue, views/Register.vue, views/NotFound.vue]
-    plane: hall
+    plane: light-blueprint
     dials: { soul: 8, spectacle: 7, density: 4 }
     substrate: [grain, scrim, vignette, display-clamp-type]
   commerce:
@@ -22,29 +22,31 @@ registers:
     forbidden: [grain, vignette, display-clamp-type, dark-default, hero-engine]
 
 planes:
-  paper:
-    page: "#eef1ea"
-    surface: "#fbfcf9"
-    surface2: "#f7f9f4"
-    sunken: "#f5f7f2"
-    border: "rgba(20,32,26,.09)"
-    borderSoft: "rgba(20,32,26,.055)"
-    ink: ["#14201a", "#3d4a43", "#6e7d74", "#97a39b"]
-    accent: "#a85a1e"
-    accentSoft: "rgba(168,90,30,.10)"
-    onAccent: "#fffdf9"
-    accent2: "#2f6b4f"
-    semantic: { up: "#2f7a55", down: "#c0453c", warn: "#b77a16", info: "#2c6b8c" }
-    shadow: "0 1px 2px rgba(20,40,30,.05), 0 1px 3px rgba(20,40,30,.06)"
-  hall:
-    page: "#0b100e"
-    surface: "#131a16"
-    ink: ["#eef1e9", "#b8bfb1", "#8d968a", "#6b7469"]
-    accent: "#e8a33d"
-    onAccent: "#15100a"
-    accent2: "#5fd3b2"
+  light:
+    page: "#eef2f8"
+    surface: "#fcfdff"
+    surface2: "#f6f9fd"
+    sunken: "#f3f6fb"
+    border: "rgba(16,32,64,.10)"
+    borderSoft: "rgba(16,32,64,.06)"
+    ink: ["#101b2e", "#3b4a63", "#5b6a83", "#64728a"]
+    accent: "#1a5fd0"
+    accentSoft: "rgba(26,95,208,.10)"
+    onAccent: "#fbfdff"
+    accent2: "#0e6b86"
+    semantic: { up: "#157f52", down: "#c8392f", warn: "#b26a08", info: "#0f8ba8" }
+    shadow: "0 1px 2px rgba(16,36,72,.06), 0 1px 3px rgba(16,36,72,.07)"
+    blueprint: { gridLine: "rgba(26,95,208,.07)", matA: "#cfe1f6", matB: "#b6cff0" }
+  deep:
+    usedBy: [后台侧栏, 登录页左侧, 首页收尾条, 404]
+    page: "#0b1220"
+    surface: "#121c30"
+    ink: ["#e9eefb", "#b3bfd6", "#8b98b3", "#7d8aa5"]
+    accent: "#5b9dff"
+    onAccent: "#071022"
+    accent2: "#4fd1e8"
     semantic: { up: "#3fcb86", down: "#ff6156", warn: "#e8a33d", info: "#5cc0e0" }
-    rail: { base: "#141a16", hover: "#1d251f", ink: "#9aa79c", inkActive: "#f4f6f1" }
+    rail: { base: "#0d1526", hover: "#16203a", ink: "#93a1bd", inkActive: "#eef3fb" }
 
 tokens:
   radius: { sm: 8, base: 12, lg: 16, xl: 22 }
@@ -59,21 +61,28 @@ tokens:
 motion:
   budget: { heavy: 1, beats: 4, perFamilyOnce: true }
   beats:
-    - { slot: hero, family: spatial, route: R6+R2, what: 从底线望过去的球场，白线自绘，滚动推进镜头 }
-    - { slot: scroll, family: image-transform, route: R2, what: 印相表格子滚到跟前逐格显影 }
-    - { slot: interaction, family: state-transition, route: R1+R3, what: 格子抬起、筛选重排 }
-    - { slot: close, family: typographic, route: R1, what: 公告条与收尾文字浮起 }
+    - { slot: hero, family: spatial+geometry, route: R6+R2, what: 蓝图球场白线自绘，滚动推进镜头 }
+    - { slot: hero-title, family: typographic, route: R1, what: 中文按字揭开，--i 错峰 42ms }
+    - { slot: hero-light, family: atmosphere, route: R1+JS, what: 鼠标跟随冷光，仅 FINE 且非 RM }
+    - { slot: scroll, family: image-transform, route: R2, what: 印相表格子逐格显影，错峰靠推进度区间 }
+    - { slot: interaction, family: state-transition, route: R1, what: 棋盘按行落位 + 格子按压反馈 }
+    - { slot: close, family: typographic, route: R1, what: 规格带数字滚动、收尾条错峰 }
+  primitives: [.split/.ch, .roll, .drop-in, .reveal-stagger, .count-up, .cursor-light]
   reducedMotion: 停在构图最好的一帧，线已画完，全部静止
   engineDeps: []
 
 imagery:
   dir: frontend/public/img
   count: 8
-  source: Pexels (Ben Cheers indoor badminton series)
+  size: 1200x800 (3:2) 统一
+  covers: court-01..05.svg（球场图纸，零人物、零网络，跟蓝图主题同源）
+  photos: [venue-detail-court.jpg, venue-detail-net.jpg, auth-visual.jpg]
+  source: Pexels Ben Cheers 室内羽毛球系列，裁出确认无人的区域
   license: Pexels License（免费商用、免署名）
   local: true
-  grade: "saturate(.86) contrast(1.06) brightness(.97) + 墨绿 multiply 叠层"
-  honesty: 示意照片，不是这五座球馆的真实照片；alt 不写具体场馆名
+  grade: "saturate(.92) contrast(1.05) brightness(1.02) + 冷蓝 multiply 叠层"
+  honesty: 图纸是示意图、照片是示意照片，都不是这五座球馆的真实影像；alt 只写画面内容
+  swap: 换成实拍照片只需改 src/utils/venueVisual.js 的 DISTRICTS[].file
 
 a11y:
   contrast: "正文 >= 4.5:1，按钮白字对琥珀 #a85a1e >= 4.5:1"

@@ -182,7 +182,8 @@ onMounted(fetchVenues)
 
 .venue-row {
   display: grid;
-  grid-template-columns: 208px minmax(0, 1fr) auto;
+  grid-template-columns: 216px minmax(0, 1fr) auto;
+  min-height: 144px;
   align-items: stretch;
   gap: 0;
   background: var(--surface);
@@ -197,18 +198,19 @@ onMounted(fetchVenues)
 
 .row-cover {
   position: relative;
+  aspect-ratio: 3 / 2;
   overflow: hidden;
-  background-color: #17281f;
+  background-color: #e3ecf9;
   background-image:
-    linear-gradient(90deg, transparent calc(50% - 1px), rgba(248, 252, 246, 0.14) 50%, transparent calc(50% + 1px)),
-    radial-gradient(60% 50% at 50% 50%, rgba(232, 163, 61, 0.12), transparent 72%);
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(26, 95, 208, 0.2) 50%, transparent calc(50% + 1px)),
+    radial-gradient(60% 50% at 50% 50%, rgba(26, 95, 208, 0.1), transparent 72%);
 }
 
 .row-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: saturate(0.86) contrast(1.06) brightness(0.97);
+  filter: saturate(0.92) contrast(1.05) brightness(1.02);
   transition: transform var(--dur-4) var(--ease-out);
 }
 
@@ -217,7 +219,7 @@ onMounted(fetchVenues)
   inset: 0;
   pointer-events: none;
   mix-blend-mode: multiply;
-  background: linear-gradient(180deg, rgba(60, 46, 22, 0.05) 0%, rgba(11, 16, 14, 0.4) 100%);
+  background: linear-gradient(180deg, rgba(20, 44, 96, 0.03) 0%, rgba(16, 32, 64, 0.28) 100%);
 }
 
 .row-no {
@@ -227,7 +229,7 @@ onMounted(fetchVenues)
   z-index: 2;
   padding: 3px 8px;
   border-radius: 999px;
-  background: rgba(11, 16, 14, 0.62);
+  background: rgba(16, 32, 64, 0.58);
   border: 1px solid rgba(255, 255, 255, 0.16);
   color: #f4f6f1;
   font-size: var(--fs-11);

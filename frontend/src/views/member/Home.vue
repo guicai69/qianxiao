@@ -1,14 +1,32 @@
 <template>
   <div class="member-home">
     <!-- 首屏：走进球馆 -->
-    <section class="hero" data-plane="hall">
+    <section class="hero" >
       <CourtScene />
 
       <div class="hero-inner">
         <p class="hero-kicker mono">广州 · {{ totalVenues }} 座球馆 · {{ totalCourts }} 片场地</p>
 
         <h1 class="display-1 hero-title">
-          把今晚的场，<br />提前订下来。
+          <span class="split" aria-hidden="true">
+            <i
+              v-for="(ch, i) in titleA"
+              :key="'a' + i"
+              class="ch"
+              :style="{ '--i': i }"
+            >{{ ch }}</i>
+          </span>
+          <span class="sr-only">把今晚的场，</span>
+          <br />
+          <span class="split" aria-hidden="true">
+            <i
+              v-for="(ch, i) in titleB"
+              :key="'b' + i"
+              class="ch"
+              :style="{ '--i': i + titleA.length }"
+            >{{ ch }}</i>
+          </span>
+          <span class="sr-only">提前订下来。</span>
         </h1>
 
         <p class="lede hero-lede">
@@ -40,19 +58,19 @@
     <section class="band-section">
       <div class="spec-band reveal">
         <div class="spec">
-          <div class="spec__num count-up" style="--i: 0">{{ pad(totalVenues) }}</div>
+          <div class="spec__num roll" style="--i: 0"><span>{{ pad(totalVenues) }}</span></div>
           <div class="spec__label">座球馆</div>
         </div>
         <div class="spec">
-          <div class="spec__num count-up" style="--i: 1">{{ totalCourts }}</div>
+          <div class="spec__num roll" style="--i: 1"><span>{{ totalCourts }}</span></div>
           <div class="spec__label">片场地</div>
         </div>
         <div class="spec">
-          <div class="spec__num count-up" style="--i: 2">14</div>
+          <div class="spec__num roll" style="--i: 2"><span>14</span></div>
           <div class="spec__label">个时段 / 天</div>
         </div>
         <div class="spec">
-          <div class="spec__num count-up" style="--i: 3">¥30<small>起</small></div>
+          <div class="spec__num roll" style="--i: 3"><span>¥30<small>起</small></span></div>
           <div class="spec__label">每小时</div>
         </div>
       </div>
@@ -68,12 +86,13 @@
         <span class="section-count mono">{{ sheet.length ? sheet.length + ' 家' : '待登录' }}</span>
       </header>
 
-      <div v-if="sheet.length" class="sheet sheet--index">
+      <div v-if="sheet.length" class="sheet">
         <button
           v-for="v in sheet"
           :key="v.id"
           type="button"
-          class="frame frame--link reveal"
+          class="frame frame--link reveal-stagger"
+          :style="{ '--i': Number(v.no) - 1 }"
           @click="openVenue(v)"
         >
           <div class="frame__media">
@@ -136,19 +155,19 @@
     </section>
 
     <!-- 收尾：换幕，回到球馆的暗色调 -->
-    <section class="closing" data-plane="hall">
+    <section class="closing" data-plane="deep">
       <div class="closing-inner">
-        <h2 class="display-2">
+        <h2 class="display-2 drop-in" style="--i: 0">
           {{ userStore.isLoggedIn ? '去挑一块场地' : '注册之后，立刻能订' }}
         </h2>
-        <p class="lede closing-lede">
+        <p class="lede closing-lede drop-in" style="--i: 1">
           {{
             userStore.isLoggedIn
               ? '按日期、场馆、场地、时段依次选，价格与折扣在下单前就写清楚。'
               : '累计消费满 ¥500 自动升银卡（95 折），满 ¥2000 升金卡（90 折），折扣写进订单快照。'
           }}
         </p>
-        <div class="closing-actions">
+        <div class="closing-actions drop-in" style="--i: 2">
           <el-button type="primary" size="large" @click="startBooking">
             {{ userStore.isLoggedIn ? '开始预约' : '注册账号' }}
             <el-icon class="el-icon--right"><ArrowRight /></el-icon>
@@ -183,6 +202,10 @@ const totalVenues = computed(() => venues.value.length || 5)
 const totalCourts = computed(
   () => venues.value.reduce((n, v) => n + (v.court_count || 0), 0) || 24
 )
+
+// 逐字揭开用：中文按字拆（没有空格可拆）
+const titleA = [...'把今晚的场，']
+const titleB = [...'提前订下来。']
 
 const pad = (n) => String(n).padStart(2, '0')
 const shortDate = (t) => (t || '').slice(5, 10).replace('-', '/')
@@ -244,6 +267,17 @@ onMounted(async () => {
   margin: 0 auto;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .hero-kicker {
   margin: 0 0 20px;
   font-size: var(--fs-12);
@@ -255,13 +289,13 @@ onMounted(async () => {
 
 .hero-title {
   max-width: 16ch;
-  color: #f6f8f3;
-  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.45);
+  color: var(--ink-1);
+  text-shadow: 0 1px 26px rgba(255, 255, 255, 0.7);
 }
 
 .hero-lede {
   margin-top: 20px;
-  color: rgba(238, 241, 233, 0.76);
+  color: var(--ink-2);
   max-width: 40ch;
 }
 
@@ -283,11 +317,11 @@ onMounted(async () => {
   border: 0;
   background: none;
   padding: 8px 2px;
-  color: rgba(238, 241, 233, 0.72);
+  color: var(--ink-2);
   font-size: var(--fs-14);
   font-weight: 600;
   cursor: pointer;
-  border-bottom: 1px solid rgba(238, 241, 233, 0.28);
+  border-bottom: 1px solid var(--border-strong);
   transition: color var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out);
 }
 
@@ -305,7 +339,7 @@ onMounted(async () => {
   list-style: none;
   font-size: var(--fs-12);
   letter-spacing: 0.08em;
-  color: rgba(238, 241, 233, 0.5);
+  color: var(--ink-3);
 }
 
 .steps li {
@@ -318,7 +352,7 @@ onMounted(async () => {
   content: "";
   width: 26px;
   height: 1px;
-  background: rgba(246, 250, 244, 0.3);
+  background: var(--border-strong);
 }
 
 /* ---------- 规格带 ---------- */

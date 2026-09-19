@@ -1,6 +1,6 @@
 <template>
   <!-- 走错门了：给一个球馆暗色平面，不是一张白色的系统报错页 -->
-  <div class="not-found hall-section grain" data-plane="hall">
+  <div class="not-found hall-section grain" data-plane="deep">
     <div class="nf-aura" aria-hidden="true"></div>
 
     <div class="nf-inner hall-inner">

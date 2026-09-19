@@ -1,7 +1,7 @@
 <template>
   <!-- 登录 / 注册共用的外壳：左边球馆照片，右边纸面表单 -->
   <div class="auth-shell">
-    <section class="auth-visual" data-plane="hall">
+    <section class="auth-visual" data-plane="deep">
       <img
         class="auth-photo"
         src="/img/auth-visual.jpg"
@@ -72,8 +72,8 @@ import { hideBrokenImage } from '@/utils/venueVisual'
   padding: 36px 44px 52px;
   overflow: clip;
   background:
-    radial-gradient(80% 60% at 50% 20%, rgba(232, 163, 61, 0.14), transparent 70%),
-    linear-gradient(180deg, #101a15 0%, #0b100e 100%);
+    radial-gradient(80% 60% at 50% 20%, rgba(91, 157, 255, 0.18), transparent 70%),
+    linear-gradient(180deg, #101a2e 0%, #0b1220 100%);
 }
 
 .auth-photo {
@@ -92,8 +92,8 @@ import { hideBrokenImage } from '@/utils/venueVisual'
   z-index: 1;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(9, 14, 11, 0.82) 0%, rgba(9, 14, 11, 0.28) 42%, rgba(9, 14, 11, 0.94) 100%),
-    radial-gradient(110% 70% at 30% 80%, rgba(9, 14, 11, 0.5), transparent 70%);
+    linear-gradient(180deg, rgba(9, 14, 26, 0.82) 0%, rgba(9, 14, 26, 0.3) 42%, rgba(9, 14, 26, 0.94) 100%),
+    radial-gradient(110% 70% at 30% 80%, rgba(9, 14, 26, 0.5), transparent 70%);
 }
 
 .auth-visual-inner {
@@ -125,7 +125,7 @@ import { hideBrokenImage } from '@/utils/venueVisual'
   border-radius: 10px;
   color: var(--accent);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(11, 16, 14, 0.5);
+  background: rgba(11, 18, 32, 0.5);
 }
 
 .visual-title {

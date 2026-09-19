@@ -17,7 +17,7 @@
         <div class="head-photo">
           <img
             src="/img/venue-detail-court.jpg"
-            alt="室内球场白线与球网"
+            alt="室内球场地面与场地线"
             loading="lazy"
             decoding="async"
             @error="hideBrokenImage"
@@ -97,17 +97,18 @@
 
             <div v-else>
               <!-- 桌面：场地 × 时段 -->
-              <div class="board" :style="boardStyle" v-loading="bookingLoading">
+              <div class="board" :key="bookDate" :style="boardStyle" v-loading="bookingLoading">
                 <div class="board-corner mono">时段 \ 场地</div>
                 <div v-for="c in courts" :key="'h' + c.id" class="board-court">{{ c.name }}</div>
 
-                <template v-for="s in slots" :key="s.id">
-                  <div class="board-time mono">{{ s.display }}</div>
+                <template v-for="(s, row) in slots" :key="s.id">
+                  <div class="board-time mono drop-in" :style="{ '--i': row }">{{ s.display }}</div>
                   <button
                     v-for="c in courts"
                     :key="c.id + '-' + s.id"
                     type="button"
-                    class="cell"
+                    class="cell drop-in"
+                    :style="{ '--i': row }"
                     :class="{ 'is-booked': isBooked(c, s) }"
                     :disabled="isBooked(c, s)"
                     :aria-label="`${c.name} ${s.display} ${isBooked(c, s) ? '已预约' : '可预约'}`"
@@ -120,9 +121,9 @@
               </div>
 
               <!-- 手机：一个时段一行，可约的场地做成小块 -->
-              <div class="board-list" v-loading="bookingLoading">
-                <div v-for="s in slots" :key="'m' + s.id" class="slot-row">
-                  <div class="slot-time mono">{{ s.display }}</div>
+              <div class="board-list" :key="bookDate + '-m'" v-loading="bookingLoading">
+                <div v-for="(s, row) in slots" :key="'m' + s.id" class="slot-row">
+                  <div class="slot-time mono drop-in" :style="{ '--i': row }">{{ s.display }}</div>
                   <div class="slot-courts">
                     <button
                       v-for="c in courts"
@@ -147,8 +148,8 @@
         <aside class="detail-side">
           <div class="side-photo surface">
             <img
-              src="/img/venue-detail-racket.jpg"
-              alt="球拍与羽毛球特写"
+              src="/img/venue-detail-net.jpg"
+              alt="球馆看台与木地板"
               loading="lazy"
               decoding="async"
               @error="hideBrokenImage"
@@ -473,15 +474,15 @@ onMounted(fetchVenue)
 .head-photo {
   position: relative;
   min-height: 190px;
-  background-color: #17281f;
-  background-image: radial-gradient(60% 50% at 50% 50%, rgba(232, 163, 61, 0.14), transparent 72%);
+  background-color: #e3ecf9;
+  background-image: radial-gradient(60% 50% at 50% 50%, rgba(26, 95, 208, 0.1), transparent 72%);
 }
 
 .head-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: saturate(0.86) contrast(1.06) brightness(0.96);
+  filter: saturate(0.92) contrast(1.05) brightness(1.02);
 }
 
 .head-photo-grade,
@@ -490,7 +491,7 @@ onMounted(fetchVenue)
   inset: 0;
   pointer-events: none;
   mix-blend-mode: multiply;
-  background: linear-gradient(180deg, rgba(60, 46, 22, 0.05) 0%, rgba(11, 16, 14, 0.36) 100%);
+  background: linear-gradient(180deg, rgba(20, 44, 96, 0.03) 0%, rgba(16, 32, 64, 0.26) 100%);
 }
 
 .head-copy {
@@ -678,6 +679,12 @@ onMounted(fetchVenue)
 .cell-price {
   font-size: var(--fs-12);
   font-weight: 700;
+  color: var(--ink-1);
+}
+
+/* 主色只标"可点"：悬停或键盘聚焦时才点亮 */
+.cell:not(.is-booked):hover .cell-price,
+.cell:not(.is-booked):focus-visible .cell-price {
   color: var(--accent);
 }
 
@@ -742,16 +749,16 @@ onMounted(fetchVenue)
 
 .side-photo {
   position: relative;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 3 / 2;
   overflow: hidden;
-  background-color: #17281f;
+  background-color: #e3ecf9;
 }
 
 .side-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: saturate(0.86) contrast(1.06) brightness(0.96);
+  filter: saturate(0.92) contrast(1.05) brightness(1.02);
 }
 
 .receipt {

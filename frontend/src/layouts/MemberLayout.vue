@@ -1,7 +1,7 @@
 <template>
   <div class="member-layout">
     <!-- 球馆栏：会员端从头到尾一条深色顶栏，跟后台的深色侧栏是同一套语言 -->
-    <header class="member-header" data-plane="hall">
+    <header class="member-header" >
       <div class="header-inner">
         <button class="brand" type="button" @click="goHome">
           <span class="brand-mark">
@@ -71,7 +71,7 @@
       <router-view />
     </main>
 
-    <footer class="member-footer" data-plane="hall">
+    <footer class="member-footer" >
       <div class="footer-inner">
         <span class="footer-mark mono">羽毛球馆预约管理系统</span>
         <span class="footer-note">毕业设计 · Django REST Framework + Vue 3</span>
@@ -215,7 +215,7 @@ function handleCommand(cmd) {
   font-weight: 700;
 }
 
-.nav-link.active::after {
+.nav-link::after {
   content: "";
   position: absolute;
   left: 12px;
@@ -224,6 +224,13 @@ function handleCommand(cmd) {
   height: 2px;
   border-radius: 2px;
   background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-3) var(--ease-out);
+}
+
+.nav-link.active::after {
+  transform: scaleX(1);
 }
 
 .member-actions {

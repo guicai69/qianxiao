@@ -5,52 +5,52 @@
 
 :root {
   --el-color-primary: var(--accent);
-  --el-color-primary-light-3: var(--accent-l3);
-  --el-color-primary-light-5: var(--accent-l5);
-  --el-color-primary-light-7: var(--accent-l7);
-  --el-color-primary-light-8: var(--accent-l8);
-  --el-color-primary-light-9: var(--accent-l9);
-  --el-color-primary-dark-2: var(--accent-d2);
+  --el-color-primary-light-3: color-mix(in srgb, var(--accent) 70%, var(--surface));
+  --el-color-primary-light-5: color-mix(in srgb, var(--accent) 50%, var(--surface));
+  --el-color-primary-light-7: color-mix(in srgb, var(--accent) 30%, var(--surface));
+  --el-color-primary-light-8: color-mix(in srgb, var(--accent) 20%, var(--surface));
+  --el-color-primary-light-9: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  --el-color-primary-dark-2: color-mix(in srgb, var(--accent) 80%, var(--surface));
 
   --el-color-success: var(--up);
-  --el-color-success-light-3: #6da288;
-  --el-color-success-light-5: #97bcaa;
-  --el-color-success-light-7: #c0d7cc;
-  --el-color-success-light-8: #d5e4dd;
-  --el-color-success-light-9: #eaf2ee;
-  --el-color-success-dark-2: #266244;
+  --el-color-success-light-3: color-mix(in srgb, var(--up) 70%, var(--surface));
+  --el-color-success-light-5: color-mix(in srgb, var(--up) 50%, var(--surface));
+  --el-color-success-light-7: color-mix(in srgb, var(--up) 30%, var(--surface));
+  --el-color-success-light-8: color-mix(in srgb, var(--up) 20%, var(--surface));
+  --el-color-success-light-9: color-mix(in srgb, var(--up) 10%, var(--surface));
+  --el-color-success-dark-2: color-mix(in srgb, var(--up) 80%, var(--surface));
 
   --el-color-warning: var(--warn);
-  --el-color-warning-light-3: #cda25c;
-  --el-color-warning-light-5: #dbbd8b;
-  --el-color-warning-light-7: #e9d7b9;
-  --el-color-warning-light-8: #f0e4d0;
-  --el-color-warning-light-9: #f8f3e8;
-  --el-color-warning-dark-2: #926212;
+  --el-color-warning-light-3: color-mix(in srgb, var(--warn) 70%, var(--surface));
+  --el-color-warning-light-5: color-mix(in srgb, var(--warn) 50%, var(--surface));
+  --el-color-warning-light-7: color-mix(in srgb, var(--warn) 30%, var(--surface));
+  --el-color-warning-light-8: color-mix(in srgb, var(--warn) 20%, var(--surface));
+  --el-color-warning-light-9: color-mix(in srgb, var(--warn) 10%, var(--surface));
+  --el-color-warning-dark-2: color-mix(in srgb, var(--warn) 80%, var(--surface));
 
   --el-color-danger: var(--down);
-  --el-color-danger-light-3: #d37d76;
-  --el-color-danger-light-5: #dfa29d;
-  --el-color-danger-light-7: #ecc7c4;
-  --el-color-danger-light-8: #f2dad8;
-  --el-color-danger-light-9: #f9eceb;
-  --el-color-danger-dark-2: #9a3730;
+  --el-color-danger-light-3: color-mix(in srgb, var(--down) 70%, var(--surface));
+  --el-color-danger-light-5: color-mix(in srgb, var(--down) 50%, var(--surface));
+  --el-color-danger-light-7: color-mix(in srgb, var(--down) 30%, var(--surface));
+  --el-color-danger-light-8: color-mix(in srgb, var(--down) 20%, var(--surface));
+  --el-color-danger-light-9: color-mix(in srgb, var(--down) 10%, var(--surface));
+  --el-color-danger-dark-2: color-mix(in srgb, var(--down) 80%, var(--surface));
 
   --el-color-error: var(--down);
-  --el-color-error-light-3: #d37d76;
-  --el-color-error-light-5: #dfa29d;
-  --el-color-error-light-7: #ecc7c4;
-  --el-color-error-light-8: #f2dad8;
-  --el-color-error-light-9: #f9eceb;
-  --el-color-error-dark-2: #9a3730;
+  --el-color-error-light-3: color-mix(in srgb, var(--down) 70%, var(--surface));
+  --el-color-error-light-5: color-mix(in srgb, var(--down) 50%, var(--surface));
+  --el-color-error-light-7: color-mix(in srgb, var(--down) 30%, var(--surface));
+  --el-color-error-light-8: color-mix(in srgb, var(--down) 20%, var(--surface));
+  --el-color-error-light-9: color-mix(in srgb, var(--down) 10%, var(--surface));
+  --el-color-error-dark-2: color-mix(in srgb, var(--down) 80%, var(--surface));
 
   --el-color-info: var(--info);
-  --el-color-info-light-3: #6b97ae;
-  --el-color-info-light-5: #96b5c5;
-  --el-color-info-light-7: #c0d3dc;
-  --el-color-info-light-8: #d5e1e8;
-  --el-color-info-light-9: #eaf0f3;
-  --el-color-info-dark-2: #235670;
+  --el-color-info-light-3: color-mix(in srgb, var(--info) 70%, var(--surface));
+  --el-color-info-light-5: color-mix(in srgb, var(--info) 50%, var(--surface));
+  --el-color-info-light-7: color-mix(in srgb, var(--info) 30%, var(--surface));
+  --el-color-info-light-8: color-mix(in srgb, var(--info) 20%, var(--surface));
+  --el-color-info-light-9: color-mix(in srgb, var(--info) 10%, var(--surface));
+  --el-color-info-dark-2: color-mix(in srgb, var(--info) 80%, var(--surface));
 
   --el-bg-color: var(--surface);
   --el-bg-color-page: var(--page);
@@ -96,35 +96,8 @@
   --el-disabled-text-color: var(--ink-4);
 }
 
-/* 暗色球馆平面下，语义色的"浅色变体"要朝底色混，不能朝白色混 */
-[data-plane="hall"] {
-  --el-color-success-light-3: #319664;
-  --el-color-success-light-5: #29724e;
-  --el-color-success-light-7: #204f38;
-  --el-color-success-light-8: #1b3d2c;
-  --el-color-success-light-9: #172b21;
-  --el-color-warning-light-3: #a87a31;
-  --el-color-warning-light-5: #7d5e29;
-  --el-color-warning-light-7: #524322;
-  --el-color-warning-light-8: #3d351e;
-  --el-color-warning-light-9: #28271a;
-  --el-color-danger-light-3: #b84c43;
-  --el-color-danger-light-5: #893d36;
-  --el-color-danger-light-7: #5a2f29;
-  --el-color-danger-light-8: #422823;
-  --el-color-danger-light-9: #2a211c;
-  --el-color-error-light-3: #b84c43;
-  --el-color-error-light-5: #893d36;
-  --el-color-error-light-7: #5a2f29;
-  --el-color-error-light-8: #422823;
-  --el-color-error-light-9: #2a211c;
-  --el-color-info-light-3: #468ea3;
-  --el-color-info-light-5: #376d7b;
-  --el-color-info-light-7: #284c53;
-  --el-color-info-light-8: #213b3e;
-  --el-color-info-light-9: #1a2b2a;
-  --el-mask-color: rgba(0, 0, 0, 0.68);
-}
+/* 暗面不需要再手写一份：上面的 color-mix 都以 var(--surface) 为底色，
+   切到 [data-plane="deep"] 时底色变了，浅色变体自动跟着变。 */
 
 /* ---------- 卡片：改成纸面板，去掉默认的浅灰描边和方角 ---------- */
 

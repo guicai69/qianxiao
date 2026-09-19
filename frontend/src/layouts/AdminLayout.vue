@@ -361,7 +361,7 @@ onUnmounted(() => {
 }
 
 .rail-menu :deep(.el-menu-item.is-active) {
-  background: rgba(232, 163, 61, 0.13);
+  background: rgba(91, 157, 255, 0.16);
   color: var(--rail-accent);
   font-weight: 700;
 }
