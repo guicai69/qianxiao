@@ -1,0 +1,97 @@
+# design-model.yaml — 从真实代码里抽出来的设计系统
+# 只记录"已经实现"的东西，不是规划。真源永远是 src/styles/tokens.css。
+version: 1
+project: 羽毛球馆预约管理系统
+branch: ui/finesse
+updated: 2026-09-19  (第二轮：蓝白 / 无人照片 / 动效加强)
+
+registers:
+  brand:
+    pages: [views/member/Home.vue, views/Login.vue, views/Register.vue, views/NotFound.vue]
+    plane: light-blueprint
+    dials: { soul: 8, spectacle: 7, density: 4 }
+    substrate: [grain, scrim, vignette, display-clamp-type]
+  commerce:
+    pages: [views/member/VenueList.vue, views/member/VenueDetail.vue, views/member/MemberOrders.vue]
+    plane: paper
+    dials: { soul: 6, spectacle: 3, density: 7 }
+  product:
+    pages: [layouts/AdminLayout.vue, views/admin/*, views/reception/Dashboard.vue]
+    plane: paper + dark rail
+    dials: { soul: 5, spectacle: 2, density: 8 }
+    forbidden: [grain, vignette, display-clamp-type, dark-default, hero-engine]
+
+planes:
+  light:
+    page: "#eef2f8"
+    surface: "#fcfdff"
+    surface2: "#f6f9fd"
+    sunken: "#f3f6fb"
+    border: "rgba(16,32,64,.10)"
+    borderSoft: "rgba(16,32,64,.06)"
+    ink: ["#101b2e", "#3b4a63", "#5b6a83", "#64728a"]
+    accent: "#1a5fd0"
+    accentSoft: "rgba(26,95,208,.10)"
+    onAccent: "#fbfdff"
+    accent2: "#0e6b86"
+    semantic: { up: "#157f52", down: "#c8392f", warn: "#b26a08", info: "#0f8ba8" }
+    shadow: "0 1px 2px rgba(16,36,72,.06), 0 1px 3px rgba(16,36,72,.07)"
+    blueprint: { gridLine: "rgba(26,95,208,.07)", matA: "#cfe1f6", matB: "#b6cff0" }
+  deep:
+    usedBy: [后台侧栏, 登录页左侧, 首页收尾条, 404]
+    page: "#0b1220"
+    surface: "#121c30"
+    ink: ["#e9eefb", "#b3bfd6", "#8b98b3", "#7d8aa5"]
+    accent: "#5b9dff"
+    onAccent: "#071022"
+    accent2: "#4fd1e8"
+    semantic: { up: "#3fcb86", down: "#ff6156", warn: "#e8a33d", info: "#5cc0e0" }
+    rail: { base: "#0d1526", hover: "#16203a", ink: "#93a1bd", inkActive: "#eef3fb" }
+
+tokens:
+  radius: { sm: 8, base: 12, lg: 16, xl: 22 }
+  motion: { d1: 120ms, d2: 180ms, d3: 280ms, d4: 520ms, easeOut: "cubic-bezier(.22,.61,.36,1)" }
+  z: { nav: 40, sticky: 30, overlay: 2000 }
+  tap: 44
+  fonts:
+    sans: '"PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif'
+    mono: 'ui-monospace, "SF Mono", "JetBrains Mono", Consolas, monospace'
+  webfonts: none
+
+motion:
+  budget: { heavy: 1, beats: 4, perFamilyOnce: true }
+  beats:
+    - { slot: hero, family: spatial+geometry, route: R6+R2, what: 蓝图球场白线自绘，滚动推进镜头 }
+    - { slot: hero-title, family: typographic, route: R1, what: 中文按字揭开，--i 错峰 42ms }
+    - { slot: hero-light, family: atmosphere, route: R1+JS, what: 鼠标跟随冷光，仅 FINE 且非 RM }
+    - { slot: scroll, family: image-transform, route: R2, what: 印相表格子逐格显影，错峰靠推进度区间 }
+    - { slot: interaction, family: state-transition, route: R1, what: 棋盘按行落位 + 格子按压反馈 }
+    - { slot: close, family: typographic, route: R1, what: 规格带数字滚动、收尾条错峰 }
+  primitives: [.split/.ch, .roll, .drop-in, .reveal-stagger, .count-up, .cursor-light]
+  reducedMotion: 停在构图最好的一帧，线已画完，全部静止
+  engineDeps: []
+
+imagery:
+  dir: frontend/public/img
+  count: 8
+  size: 1200x800 (3:2) 统一
+  covers: court-01..05.svg（球场图纸，零人物、零网络，跟蓝图主题同源）
+  photos: [venue-detail-court.jpg, venue-detail-net.jpg, auth-visual.jpg]
+  source: Pexels Ben Cheers 室内羽毛球系列，裁出确认无人的区域
+  license: Pexels License（免费商用、免署名）
+  local: true
+  grade: "saturate(.92) contrast(1.05) brightness(1.02) + 冷蓝 multiply 叠层"
+  honesty: 图纸是示意图、照片是示意照片，都不是这五座球馆的真实影像；alt 只写画面内容
+  swap: 换成实拍照片只需改 src/utils/venueVisual.js 的 DISTRICTS[].file
+
+a11y:
+  contrast: "正文 >= 4.5:1，按钮白字对琥珀 #a85a1e >= 4.5:1"
+  focusVisible: true
+  tapTarget: 44
+  reducedMotionTerminalState: true
+  overflowX: clip
+
+charts:
+  themeFile: src/utils/chartTheme.js
+  palette: [accent, accent2, info, warn, ink3]
+  animation: "关闭当 prefers-reduced-motion"

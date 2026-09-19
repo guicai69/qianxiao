@@ -1,414 +1,520 @@
 <template>
   <div class="member-home">
-    <section class="home-hero">
-      <div class="hero-copy">
-        <div class="eyebrow">
-          <span class="eyebrow-dot"></span>
-          羽毛球馆预约
-        </div>
-        <h1>选择场馆，快速预约</h1>
-        <p>登录后即可查看场馆、场地与可预约时段。</p>
-        <el-button type="primary" size="large" class="hero-button" @click="handleStartBooking">
-          开始预约
-          <el-icon class="el-icon--right"><ArrowRight /></el-icon>
-        </el-button>
-      </div>
+    <!-- 首屏：走进球馆 -->
+    <section class="hero" >
+      <CourtScene />
 
-      <div class="hero-visual" aria-hidden="true">
-        <div class="court-panel">
-          <div class="court-title">
-            <el-icon><Medal /></el-icon>
-            <span>COURT 01</span>
-          </div>
-          <div class="court-lines">
-            <span class="line line-a"></span>
-            <span class="line line-b"></span>
-            <span class="line line-c"></span>
-          </div>
-          <div class="court-meta">
-            <span>19:00 - 22:00</span>
-            <span>¥60</span>
-          </div>
-        </div>
-      </div>
-    </section>
+      <div class="hero-inner">
+        <p class="hero-kicker mono">广州 · {{ totalVenues }} 座球馆 · {{ totalCourts }} 片场地</p>
 
-    <section v-if="announcements.length" class="announce-section">
-      <div class="section-heading">
-        <h3>场馆公告</h3>
-        <span>Announcements</span>
-      </div>
-      <div class="announce-list">
-        <el-card
-          v-for="a in announcements"
-          :key="a.id"
-          shadow="never"
-          class="announce-card"
-        >
-          <div class="announce-card-head">
-            <strong>{{ a.title }}</strong>
-            <el-tag v-if="a.is_pinned" type="danger" effect="light" round size="small">置顶</el-tag>
-          </div>
-          <p>{{ a.content }}</p>
-          <span class="announce-date">{{ formatTime(a.created_at) }}</span>
-        </el-card>
-      </div>
-    </section>
-
-    <section class="quick-grid">
-      <el-card
-        v-for="item in quickActions"
-        :key="item.label"
-        shadow="never"
-        class="quick-card"
-        @click="go(item.path)"
-      >
-        <div class="quick-card-inner">
-          <span class="quick-icon" :style="{ color: item.color, background: item.soft }">
-            <el-icon :size="24"><component :is="item.icon" /></el-icon>
+        <h1 class="display-1 hero-title">
+          <span class="split" aria-hidden="true">
+            <i
+              v-for="(ch, i) in titleA"
+              :key="'a' + i"
+              class="ch"
+              :style="{ '--i': i }"
+            >{{ ch }}</i>
           </span>
-          <div>
-            <strong>{{ item.label }}</strong>
-            <span>{{ item.description }}</span>
-          </div>
+          <span class="sr-only">把今晚的场，</span>
+          <br />
+          <span class="split" aria-hidden="true">
+            <i
+              v-for="(ch, i) in titleB"
+              :key="'b' + i"
+              class="ch"
+              :style="{ '--i': i + titleA.length }"
+            >{{ ch }}</i>
+          </span>
+          <span class="sr-only">提前订下来。</span>
+        </h1>
+
+        <p class="lede hero-lede">
+          场馆、场地、时段一处看清。会员折扣自动算进价格，到店前台签到即核销。
+        </p>
+
+        <div class="hero-actions">
+          <el-button type="primary" size="large" class="hero-cta" @click="startBooking">
+            开始预约
+            <el-icon class="el-icon--right"><ArrowRight /></el-icon>
+          </el-button>
+          <button v-if="userStore.isLoggedIn" class="link-ghost" @click="router.push('/orders')">
+            查看我的订单
+          </button>
+          <button v-else class="link-ghost" @click="router.push('/register')">
+            还没有账号？注册
+          </button>
         </div>
-      </el-card>
+
+        <ol class="steps mono">
+          <li>选场馆</li>
+          <li>挑时段</li>
+          <li>到店核销</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 规格带：真数字，不是"高效便捷"那种形容词 -->
+    <section class="band-section">
+      <div class="spec-band reveal">
+        <div class="spec">
+          <div class="spec__num roll" style="--i: 0"><span>{{ pad(totalVenues) }}</span></div>
+          <div class="spec__label">座球馆</div>
+        </div>
+        <div class="spec">
+          <div class="spec__num roll" style="--i: 1"><span>{{ totalCourts }}</span></div>
+          <div class="spec__label">片场地</div>
+        </div>
+        <div class="spec">
+          <div class="spec__num roll" style="--i: 2"><span>14</span></div>
+          <div class="spec__label">个时段 / 天</div>
+        </div>
+        <div class="spec">
+          <div class="spec__num roll" style="--i: 3"><span>¥30<small>起</small></span></div>
+          <div class="spec__label">每小时</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 印相表：一排球场就是一张接触印相表，逐格挑选 -->
+    <section class="sheet-section">
+      <header class="section-head">
+        <div>
+          <h2 class="display-3">场馆印相表</h2>
+          <p class="section-sub">一格一座球馆，点开挑场地与时段</p>
+        </div>
+        <span class="section-count mono">{{ sheet.length ? sheet.length + ' 家' : '待登录' }}</span>
+      </header>
+
+      <div v-if="sheet.length" class="sheet">
+        <button
+          v-for="v in sheet"
+          :key="v.id"
+          type="button"
+          class="frame frame--link reveal-stagger"
+          :style="{ '--i': Number(v.no) - 1 }"
+          @click="openVenue(v)"
+        >
+          <div class="frame__media">
+            <img :src="coverUrl(v)" :alt="`${v.name}室内球场`" loading="lazy" decoding="async" @error="hideBrokenImage" />
+            <span class="frame__grade"></span>
+            <span class="frame__no">{{ v.no }}</span>
+          </div>
+          <div class="frame__body">
+            <h3 class="frame__title">{{ v.name }}</h3>
+            <div class="frame__meta">
+              <span>{{ districtOf(v) }}区</span>
+              <span>{{ v.court_count }} 片场地</span>
+            </div>
+            <div class="frame__row">
+              <span class="frame__addr">{{ v.address || '地址待补充' }}</span>
+              <span class="frame__go">
+                {{ userStore.isLoggedIn ? '选时段' : '登录后选时段' }}
+                <el-icon><ArrowRight /></el-icon>
+              </span>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <div v-else class="sheet-locked">
+        <div class="locked-copy">
+          <h3 class="display-3">印相表要登录才展开</h3>
+          <p class="section-sub">
+            登录后这里是五座球馆的格子：每格写着场地数量、地址与可预约时段，点进去就能下单。
+          </p>
+        </div>
+        <div class="locked-actions">
+          <el-button type="primary" size="large" @click="router.push('/login')">登录</el-button>
+          <el-button size="large" @click="router.push('/register')">注册</el-button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 告示条：印相表底下的说明栏 -->
+    <section v-if="announcements.length" class="bulletin-section">
+      <header class="section-head">
+        <div>
+          <h2 class="display-3">场馆公告</h2>
+          <p class="section-sub">充值赠送、开放时间与临时调整</p>
+        </div>
+      </header>
+
+      <div class="bulletin reveal">
+        <article v-for="a in announcements" :key="a.id" class="bulletin__item">
+          <div class="bulletin__body">
+            <strong>
+              {{ a.title }}
+              <el-tag v-if="a.is_pinned" size="small" type="warning" effect="light">置顶</el-tag>
+            </strong>
+            <p>{{ a.content }}</p>
+          </div>
+          <time class="bulletin__date">{{ shortDate(a.created_at) }}</time>
+        </article>
+      </div>
+    </section>
+
+    <!-- 收尾：换幕，回到球馆的暗色调 -->
+    <section class="closing" data-plane="deep">
+      <div class="closing-inner">
+        <h2 class="display-2 drop-in" style="--i: 0">
+          {{ userStore.isLoggedIn ? '去挑一块场地' : '注册之后，立刻能订' }}
+        </h2>
+        <p class="lede closing-lede drop-in" style="--i: 1">
+          {{
+            userStore.isLoggedIn
+              ? '按日期、场馆、场地、时段依次选，价格与折扣在下单前就写清楚。'
+              : '累计消费满 ¥500 自动升银卡（95 折），满 ¥2000 升金卡（90 折），折扣写进订单快照。'
+          }}
+        </p>
+        <div class="closing-actions drop-in" style="--i: 2">
+          <el-button type="primary" size="large" @click="startBooking">
+            {{ userStore.isLoggedIn ? '开始预约' : '注册账号' }}
+            <el-icon class="el-icon--right"><ArrowRight /></el-icon>
+          </el-button>
+          <el-button v-if="!userStore.isLoggedIn" size="large" @click="router.push('/login')">
+            已有账号，登录
+          </el-button>
+        </div>
+      </div>
     </section>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue"
-import { useRouter } from "vue-router"
-import { useUserStore } from "@/store"
-import { OfficeBuilding, Tickets, User, ArrowRight, Medal } from "@element-plus/icons-vue"
-import { announcementApi } from "@/api/announcements"
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ArrowRight } from '@element-plus/icons-vue'
+import { useUserStore } from '@/store'
+import { venueApi } from '@/api/venues'
+import { announcementApi } from '@/api/announcements'
+import CourtScene from '@/components/brand/CourtScene.vue'
+import { asContactSheet, coverUrl, districtOf, hideBrokenImage } from '@/utils/venueVisual'
 
 const router = useRouter()
 const userStore = useUserStore()
+
+const venues = ref([])
 const announcements = ref([])
 
-function formatTime(t) {
-  return (t || "").slice(0, 16).replace("T", " ")
+const sheet = computed(() => asContactSheet(venues.value))
+const totalVenues = computed(() => venues.value.length || 5)
+const totalCourts = computed(
+  () => venues.value.reduce((n, v) => n + (v.court_count || 0), 0) || 24
+)
+
+// 逐字揭开用：中文按字拆（没有空格可拆）
+const titleA = [...'把今晚的场，']
+const titleB = [...'提前订下来。']
+
+const pad = (n) => String(n).padStart(2, '0')
+const shortDate = (t) => (t || '').slice(5, 10).replace('-', '/')
+
+function startBooking() {
+  if (!userStore.isLoggedIn) return router.push('/register')
+  if (userStore.isAdmin) return router.push('/admin/dashboard')
+  if (userStore.isReception) return router.push('/reception/dashboard')
+  return router.push('/venues')
+}
+
+/** 印相表格子：游客点进去先登录（场馆详情与可预约时段需要登录） */
+function openVenue(v) {
+  if (!userStore.isLoggedIn) return router.push('/login')
+  router.push(`/venues/${v.id}`)
 }
 
 onMounted(async () => {
   try {
     const res = await announcementApi.list({ page_size: 5 })
-    announcements.value = res.results || []
+    announcements.value = (res.results || []).filter((a) => a.is_published !== false)
   } catch {
-    // 未登录或网络异常时忽略
+    // 公告接口异常不影响首页
+  }
+
+  // 场馆：登录了走完整接口；没登录走公开接口（只有场馆基础信息，拿不到可预约时段）
+  try {
+    const res = userStore.isLoggedIn
+      ? await venueApi.list({ page_size: 50 })
+      : await venueApi.publicList({ page_size: 50 })
+    venues.value = res.results || res || []
+  } catch {
+    // 接口异常时退回"锁住的印相表"
   }
 })
-
-const quickActions = [
-  {
-    label: "选择场馆",
-    description: "查看可预约场地",
-    path: "/venues",
-    icon: OfficeBuilding,
-    color: "#1976d2",
-    soft: "#e8f1fb",
-  },
-  {
-    label: "我的订单",
-    description: "查看预约与支付",
-    path: "/orders",
-    icon: Tickets,
-    color: "#d97706",
-    soft: "#fffbeb",
-  },
-  {
-    label: "个人中心",
-    description: "资料与余额充值",
-    path: "/profile",
-    icon: User,
-    color: "#16a34a",
-    soft: "#ecfdf5",
-  },
-]
-
-function go(path) {
-  if (!userStore.isLoggedIn) router.push("/login")
-  else router.push(path)
-}
-
-function handleStartBooking() {
-  if (!userStore.isLoggedIn) router.push("/login")
-  else if (userStore.isAdmin) router.push("/admin/dashboard")
-  else if (userStore.isReception) router.push("/reception/dashboard")
-  else router.push("/venues")
-}
 </script>
 
 <style scoped>
 .member-home {
   width: 100%;
+}
+
+/* ---------- 首屏 ---------- */
+
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: min(calc(92dvh - var(--nav-h)), 780px);
+  padding: 64px 24px 72px;
+  overflow: clip;
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 3;
+  width: 100%;
   max-width: 1180px;
   margin: 0 auto;
 }
 
-.home-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 480px);
-  align-items: center;
-  gap: 40px;
-  min-height: 360px;
-  padding: 44px 48px;
-  border: 1px solid var(--mui-border);
-  border-radius: 20px;
-  background: var(--mui-surface);
-  box-shadow: var(--mui-shadow);
-}
-
-.hero-copy {
-  max-width: 520px;
-}
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 18px;
-  color: var(--mui-primary);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.eyebrow-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--mui-primary);
-}
-
-.hero-copy h1 {
-  margin: 0 0 14px;
-  color: var(--mui-text);
-  font-size: 40px;
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: 0;
-}
-
-.hero-copy p {
-  margin: 0 0 28px;
-  color: var(--mui-muted);
-  font-size: 15px;
-  line-height: 1.7;
-}
-
-.hero-button {
-  height: 48px;
-  padding: 0 24px;
-  font-size: 15px;
-}
-
-.hero-visual {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 280px;
-  padding: 20px;
-  border-radius: 18px;
-  background: #f8fafc;
-}
-
-.court-panel {
-  width: 100%;
-  max-width: 360px;
-  padding: 22px;
-  border: 1px solid #dbeafe;
-  border-radius: 16px;
-  background: var(--mui-surface);
-  box-shadow: var(--mui-shadow);
-}
-
-.court-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--mui-primary);
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.court-lines {
-  position: relative;
-  height: 170px;
-  margin: 18px 0;
-  border: 2px solid #cbd5e1;
-  border-radius: 4px;
-}
-
-.line {
+.sr-only {
   position: absolute;
-  background: #cbd5e1;
-}
-
-.line-a {
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 2px;
-}
-
-.line-b {
-  top: 0;
-  left: 50%;
-  bottom: 0;
-  width: 2px;
-}
-
-.line-c {
-  top: 0;
-  left: 50%;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: transparent;
-  border: 2px solid #cbd5e1;
-  transform: translate(-50%, -50%);
-}
-
-.court-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--mui-muted);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.announce-section {
-  margin-top: 24px;
-}
-
-.section-heading {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.section-heading h3 {
-  margin: 0;
-  color: var(--mui-text);
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.section-heading span {
-  color: var(--mui-muted);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.announce-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 14px;
-}
-
-.announce-card {
-  border-left: 3px solid var(--mui-primary);
-}
-
-.announce-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.announce-card-head strong {
-  color: var(--mui-text);
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.announce-card p {
-  margin: 0 0 10px;
-  color: #475569;
-  font-size: 13px;
-  line-height: 1.7;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
   overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
-.announce-date {
-  color: var(--mui-muted);
-  font-size: 12px;
+.hero-kicker {
+  margin: 0 0 20px;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+  text-transform: none;
 }
 
-.quick-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 16px;
+.hero-title {
+  max-width: 16ch;
+  color: var(--ink-1);
+  text-shadow: 0 1px 26px rgba(255, 255, 255, 0.7);
 }
 
-.quick-card {
+.hero-lede {
+  margin-top: 20px;
+  color: var(--ink-2);
+  max-width: 40ch;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 32px;
+}
+
+.hero-cta {
+  height: 52px;
+  padding: 0 28px;
+  font-size: var(--fs-16);
+}
+
+.link-ghost {
+  border: 0;
+  background: none;
+  padding: 8px 2px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+  font-weight: 600;
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  border-bottom: 1px solid var(--border-strong);
+  transition: color var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out);
 }
 
-.quick-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--mui-shadow-lg);
-  border-color: #bfdbfe;
+.link-ghost:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
-.quick-card-inner {
+.steps {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+  margin: 40px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-12);
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
 }
 
-.quick-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  flex: 0 0 48px;
-}
-
-.quick-card-inner div {
+.steps li {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.steps li + li::before {
+  content: "";
+  width: 26px;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+/* ---------- 规格带 ---------- */
+
+.band-section {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.band-section .spec-band {
+  margin-top: 28px;
+}
+
+/* ---------- 印相表 ---------- */
+
+.sheet-section,
+.bulletin-section {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 56px 24px 0;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.section-sub {
+  margin: 8px 0 0;
+  font-size: var(--fs-13);
+  line-height: var(--lh-body);
+  color: var(--ink-3);
+  max-width: 52ch;
+}
+
+.section-count {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-4);
+  white-space: nowrap;
+  padding-bottom: 4px;
+}
+
+.frame__addr {
+  font-size: var(--fs-12);
+  color: var(--ink-4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   min-width: 0;
 }
 
-.quick-card-inner strong {
-  color: var(--mui-text);
-  font-size: 15px;
-  font-weight: 800;
+.frame__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-12);
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
 }
 
-.quick-card-inner span {
-  margin-top: 4px;
-  color: var(--mui-muted);
-  font-size: 13px;
+.sheet-locked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
+  padding: 30px 28px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
+
+.locked-copy {
+  min-width: 0;
+  flex: 1 1 340px;
+}
+
+.locked-actions {
+  display: flex;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+/* ---------- 收尾换幕 ---------- */
+
+.closing {
+  margin-top: 64px;
+  padding: 76px 24px;
+}
+
+.closing-inner {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.closing-lede {
+  margin-top: 18px;
+}
+
+.closing-actions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 30px;
+}
+
+/* ---------- 断点 ---------- */
 
 @media (max-width: 900px) {
-  .home-hero {
-    grid-template-columns: 1fr;
-    padding: 32px 24px;
+  .hero {
+    min-height: auto;
+    padding: 44px 20px 56px;
   }
 
-  .hero-copy h1 {
-    font-size: 32px;
+  .hero-title {
+    max-width: none;
   }
 
-  .quick-grid {
-    grid-template-columns: 1fr;
+  .steps {
+    margin-top: 30px;
+  }
+
+  .sheet-section,
+  .bulletin-section {
+    padding-top: 44px;
+  }
+
+  .closing {
+    padding: 56px 20px;
+  }
+}
+
+@media (max-width: 560px) {
+  .hero-cta {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero-actions {
+    gap: 12px;
+  }
+
+  .sheet-locked {
+    padding: 22px 18px;
+  }
+
+  .locked-actions {
+    width: 100%;
+  }
+
+  .locked-actions :deep(.el-button) {
+    flex: 1;
   }
 }
 </style>

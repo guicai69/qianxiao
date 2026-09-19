@@ -1,97 +1,98 @@
 <template>
   <div class="orders-page">
-    <div class="page-header">
+    <header class="page-header">
       <h2>我的订单</h2>
-      <p>查看预约记录并完成支付</p>
-    </div>
+      <p>预约记录、支付与取消都在这一页完成，金额是折后实付</p>
+    </header>
 
-    <div class="orders-layout">
-      <el-card shadow="never" class="balance-card">
-        <span class="balance-icon"><el-icon :size="24"><Wallet /></el-icon></span>
-        <span class="balance-label">当前余额</span>
-        <strong class="balance-value">¥{{ userStore.userInfo?.balance || 0 }}</strong>
-        <el-button type="primary" round @click="showRecharge = true">充值</el-button>
-      </el-card>
+    <section class="surface orders-panel">
+      <header class="panel-head">
+        <h3>订单流水</h3>
+        <div class="head-right">
+          <span class="head-balance">余额 <b class="mono">¥{{ money(userStore.userInfo?.balance) }}</b></span>
+          <el-button type="primary" class="head-cta" @click="showRecharge = true">
+            <el-icon class="el-icon--left"><Wallet /></el-icon>充值
+          </el-button>
+        </div>
+      </header>
 
-      <div class="orders-main">
-        <el-tabs v-model="activeTab" @tab-change="fetchData">
-          <el-tab-pane label="全部" name="" />
-          <el-tab-pane label="待支付" name="pending" />
-          <el-tab-pane label="已支付" name="paid" />
-          <el-tab-pane label="已取消" name="cancelled" />
-        </el-tabs>
+      <div class="panel-filter">
+        <el-radio-group v-model="activeTab" @change="fetchData">
+          <el-radio-button value="">全部</el-radio-button>
+          <el-radio-button value="pending">待支付</el-radio-button>
+          <el-radio-button value="paid">已支付</el-radio-button>
+          <el-radio-button value="cancelled">已取消</el-radio-button>
+        </el-radio-group>
+        <span class="panel-count mono">{{ total }} 笔</span>
+      </div>
 
-        <el-card shadow="never">
-          <el-table :data="list" v-loading="loading" empty-text="暂无订单">
-            <el-table-column prop="venue_name" label="场馆" min-width="140" />
-            <el-table-column prop="court_name" label="场地" width="90" />
-            <el-table-column prop="date" label="日期" width="110" />
-            <el-table-column prop="time_slot_display" label="时段" width="110" />
-            <el-table-column label="金额" width="100">
-              <template #default="{ row }">
-                <span class="amount">¥{{ row.amount }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="折扣" width="90">
-              <template #default="{ row }">
-                <span
-                  v-if="row.discount_rate && Number(row.discount_rate) < 1"
-                  class="discount-text"
-                >
-                  {{ discountText(row.discount_rate) }}
-                </span>
-                <span v-else>-</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="状态" width="100">
-              <template #default="{ row }">
+      <el-skeleton v-if="loading && !list.length" :rows="4" animated class="panel-skeleton" />
+
+      <template v-else>
+        <ul v-if="list.length" class="order-list" :class="{ 'is-busy': loading }">
+          <li v-for="row in list" :key="row.id" class="order">
+            <div class="order-info">
+              <div class="order-head">
+                <h4>{{ row.venue_name }}</h4>
+                <el-tag :type="statusTag(row.status)" effect="light" round size="small">
+                  {{ statusLabel(row.status) }}
+                </el-tag>
                 <el-tag
-                  :type="{ pending: 'warning', paid: 'success', cancelled: 'info' }[row.status]"
-                  effect="light"
+                  v-if="row.status === 'paid'"
+                  :type="row.checked_in ? 'success' : 'info'"
+                  effect="plain"
                   round
                   size="small"
                 >
-                  {{ { pending: '待支付', paid: '已支付', cancelled: '已取消' }[row.status] }}
+                  {{ row.checked_in ? '已签到' : '待使用' }}
                 </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="签到" width="90">
-              <template #default="{ row }">
-                <template v-if="row.status === 'paid'">
-                  <el-tag v-if="row.checked_in" type="success" effect="plain" round size="small">已签到</el-tag>
-                  <el-tag v-else type="info" effect="plain" round size="small">待使用</el-tag>
-                </template>
-                <span v-else>-</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="150" fixed="right">
-              <template #default="{ row }">
-                <el-button
-                  v-if="row.status === 'pending'"
-                  size="small"
-                  type="success"
-                  @click="handlePay(row)"
-                >
-                  支付
-                </el-button>
-                <el-button v-if="row.status === 'pending'" size="small" @click="handleCancel(row)">
-                  取消
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination
-            v-model:current-page="query.page"
-            :total="total"
-            layout="total, prev, pager, next"
-            @current-change="fetchData"
-            class="table-footer"
-          />
-        </el-card>
-      </div>
-    </div>
+              </div>
 
-    <el-dialog v-model="showRecharge" title="余额充值" width="380px">
+              <p class="order-meta mono">
+                <span>{{ row.court_name }}</span>
+                <span>{{ row.date }}</span>
+                <span>{{ row.time_slot_display }}</span>
+                <span class="dim">#{{ row.id }}</span>
+              </p>
+            </div>
+
+            <div class="order-price">
+              <strong class="price-final mono">¥{{ money(row.amount) }}</strong>
+              <span v-if="hasDiscount(row)" class="price-calc mono">
+                原价 ¥{{ money(row.original_amount) }} · {{ discountText(row.discount_rate) }}
+              </span>
+            </div>
+
+            <div class="order-actions">
+              <template v-if="row.status === 'pending'">
+                <el-button type="primary" @click="handlePay(row)">支付</el-button>
+                <el-button @click="handleCancel(row)">取消</el-button>
+              </template>
+              <el-button v-else-if="row.status === 'paid' && row.checked_in" disabled>已签到</el-button>
+              <el-button v-else-if="row.status === 'paid'" @click="handleCancel(row)">
+                申请取消
+              </el-button>
+            </div>
+          </li>
+        </ul>
+
+        <div v-else class="empty-state">
+          <strong>还没有这类订单</strong>
+          <span>挑一座球馆、选一个时段下单，记录就会出现在这里。</span>
+        </div>
+      </template>
+
+      <el-pagination
+        v-model:current-page="query.page"
+        :total="total"
+        :page-size="query.page_size"
+        layout="prev, pager, next"
+        @current-change="fetchData"
+        class="table-footer"
+      />
+    </section>
+
+    <el-dialog v-model="showRecharge" title="余额充值" width="440px" class="narrow-dialog">
       <el-form :model="rechargeForm" label-width="80px">
         <el-form-item label="充值金额">
           <el-input-number v-model="rechargeForm.amount" :min="1" :step="50" style="width: 210px" />
@@ -103,23 +104,30 @@
           </el-radio-group>
         </el-form-item>
       </el-form>
-      <div class="recharge-bonus">
-        <span>充值赠送</span>
-        <strong>¥{{ rechargeBonus }}，到账 ¥{{ rechargeBonus + rechargeForm.amount }}</strong>
+
+      <div class="receipt">
+        <span class="receipt__label">实付</span>
+        <strong class="receipt__pay mono">¥{{ money(rechargeForm.amount) }}</strong>
+        <span class="receipt__arrow" aria-hidden="true">→</span>
+        <span class="receipt__label">到账</span>
+        <strong class="receipt__get mono">¥{{ money(rechargeCredit) }}</strong>
       </div>
+
       <template #footer>
         <el-button @click="showRecharge = false">取消</el-button>
         <el-button type="primary" :loading="recharging" @click="handleRecharge">确认充值</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="showPay" title="确认支付" width="380px">
+    <el-dialog v-model="showPay" title="确认支付" width="400px" class="narrow-dialog">
       <div class="pay-summary">
         <span>订单金额</span>
-        <strong>¥{{ payForm.amount }}</strong>
+        <strong class="mono">¥{{ money(payForm.amount) }}</strong>
       </div>
       <el-radio-group v-model="payForm.method" class="pay-methods">
-        <el-radio value="balance" border>余额支付 (¥{{ userStore.userInfo?.balance || 0 }})</el-radio>
+        <el-radio value="balance" border>
+          余额支付（可用 <span class="mono">¥{{ money(userStore.userInfo?.balance) }}</span>）
+        </el-radio>
         <el-radio value="wechat" border>微信支付</el-radio>
         <el-radio value="alipay" border>支付宝</el-radio>
       </el-radio-group>
@@ -153,12 +161,23 @@ const query = reactive({ page: 1, page_size: 20 })
 const rechargeForm = reactive({ amount: 100, method: "wechat" })
 const payForm = reactive({ bookingId: null, amount: 0, method: "balance" })
 
+const money = (v) => Number(v || 0).toFixed(2)
 const rechargeBonus = computed(() => getRechargeBonus(rechargeForm.amount))
+const rechargeCredit = computed(() => Number(rechargeForm.amount || 0) + rechargeBonus.value)
+
+const statusLabel = (s) => ({ pending: "待支付", paid: "已支付", cancelled: "已取消" }[s] || s)
+const statusTag = (s) => ({ pending: "warning", paid: "success", cancelled: "info" }[s] || "info")
 
 const discountText = (rate) => {
   const value = Number(rate)
   if (value >= 1) return "原价"
   return `${Math.round(value * 100)}折`
+}
+
+/** 有折扣（原价与实付不同）时才展示原价那一行 */
+const hasDiscount = (row) => {
+  const original = Number(row.original_amount || 0)
+  return original > 0 && original !== Number(row.amount || 0)
 }
 
 async function fetchData() {
@@ -237,105 +256,222 @@ onMounted(fetchData)
 <style scoped>
 .orders-page {
   width: 100%;
-  max-width: 1080px;
+  max-width: 1040px;
   margin: 0 auto;
+  padding: 28px 24px 72px;
 }
 
-.orders-layout {
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.balance-card {
-  position: sticky;
-  top: 84px;
-  text-align: center;
-}
-
-.balance-card :deep(.el-card__body) {
+.orders-panel {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 24px 18px;
 }
 
-.balance-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  color: var(--mui-primary);
-  background: var(--mui-primary-soft);
-}
+/* ---------- 面板头 ---------- */
 
-.balance-label {
-  color: var(--mui-muted);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.balance-value {
-  color: var(--mui-primary);
-  font-size: 28px;
-  font-weight: 800;
-}
-
-.orders-main {
-  min-width: 0;
-}
-
-.amount {
-  color: var(--mui-primary);
-  font-weight: 800;
-}
-
-.discount-text {
-  color: var(--mui-primary);
-  font-weight: 700;
-}
-
-.recharge-bonus {
+.panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 6px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  color: var(--mui-muted);
-  background: #f8fafc;
-  font-size: 13px;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-soft);
 }
 
-.recharge-bonus strong {
-  color: var(--mui-primary);
+.panel-head h3 {
+  margin: 0;
+  font-size: var(--fs-14);
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
+.head-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.head-balance {
+  font-size: var(--fs-13);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.head-balance b {
+  font-size: var(--fs-14);
   font-weight: 800;
+  color: var(--accent);
+}
+
+.head-cta {
+  min-height: 40px;
+}
+
+/* ---------- 筛选 ---------- */
+
+.panel-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.panel-count {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-4);
+  white-space: nowrap;
+}
+
+.panel-skeleton {
+  padding: 20px;
+}
+
+/* ---------- 订单行：用分隔线组织，不堆卡片 ---------- */
+
+.order-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+
+.order-list.is-busy {
+  opacity: 0.55;
+}
+
+.order {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px 22px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.order:last-child {
+  border-bottom: 0;
+}
+
+.order-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.order-head h4 {
+  margin: 0;
+  font-size: var(--fs-16);
+  font-weight: 800;
+  color: var(--ink-1);
+}
+
+.order-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px 14px;
+  flex-wrap: wrap;
+  margin: 7px 0 0;
+  font-size: var(--fs-12);
+  color: var(--ink-3);
+}
+
+.order-meta .dim {
+  color: var(--ink-4);
+}
+
+.order-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 132px;
+}
+
+.price-final {
+  font-size: var(--fs-18);
+  font-weight: 800;
+  color: var(--ink-1);
+}
+
+.price-calc {
+  font-size: var(--fs-11);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.order-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  /* 定宽：让每一行的金额列右边缘对齐，不随按钮多少左右摆 */
+  min-width: 150px;
+}
+
+.order-actions :deep(.el-button) {
+  min-height: 40px;
+  margin: 0;
+}
+
+/* ---------- 充值 / 支付弹窗 ---------- */
+
+.receipt {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding: 12px 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  font-size: var(--fs-13);
+}
+
+.receipt__label {
+  color: var(--ink-3);
+}
+
+.receipt__pay {
+  font-size: var(--fs-16);
+  font-weight: 800;
+  color: var(--ink-1);
+}
+
+.receipt__arrow {
+  color: var(--ink-4);
+}
+
+.receipt__get {
+  font-size: var(--fs-16);
+  font-weight: 800;
+  color: var(--accent);
 }
 
 .pay-summary {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 18px;
-  padding: 14px;
-  border-radius: 12px;
-  background: #f8fafc;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--sunken);
 }
 
 .pay-summary span {
-  color: var(--mui-muted);
-  font-weight: 600;
+  font-size: var(--fs-13);
+  color: var(--ink-3);
 }
 
 .pay-summary strong {
-  color: var(--mui-primary);
-  font-size: 24px;
+  font-size: var(--fs-22);
   font-weight: 800;
+  color: var(--ink-1);
 }
 
 .pay-methods {
@@ -343,21 +479,90 @@ onMounted(fetchData)
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
+  width: 100%;
 }
 
-.pay-methods .el-radio {
-  margin-right: 0;
+.pay-methods :deep(.el-radio) {
   height: auto;
+  min-height: 44px;
+  margin: 0;
   padding: 10px 14px;
 }
 
-@media (max-width: 800px) {
-  .orders-layout {
-    grid-template-columns: 1fr;
+/* ---------- 断点 ---------- */
+
+@media (max-width: 720px) {
+  .order {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
   }
 
-  .balance-card {
-    position: static;
+  .order-price {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
   }
+
+  .order-actions {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .order-actions :deep(.el-button) {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .orders-page {
+    padding: 20px 16px 56px;
+  }
+
+  .panel-head,
+  .panel-filter {
+    padding: 14px 16px;
+  }
+
+  .panel-filter :deep(.el-radio-group) {
+    display: flex;
+    width: 100%;
+  }
+
+  .panel-filter :deep(.el-radio-button) {
+    flex: 1;
+  }
+
+  .panel-filter :deep(.el-radio-button__inner) {
+    width: 100%;
+    height: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--fs-12);
+  }
+
+  .order {
+    padding: 15px 16px;
+  }
+
+  .table-footer {
+    justify-content: center;
+  }
+
+  .table-footer :deep(.el-pagination) {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    justify-content: center;
+  }
+}
+</style>
+
+<style>
+/* 弹窗挂在 body 上，作用域样式够不到；窄屏下不许横向溢出 */
+.el-dialog.narrow-dialog {
+  max-width: calc(100vw - 32px);
 }
 </style>

@@ -196,7 +196,7 @@ npm run dev
 |------|----------|
 | 认证 | `POST /api/auth/login/` · `POST /api/auth/register/` · `POST /api/auth/change-password/` |
 | 用户 | `GET/POST /api/users/` · `GET/PATCH /api/users/me/` · `POST /api/users/{id}/blacklist/` |
-| 场馆 | `GET/POST/PATCH/DELETE /api/venues/` · `/api/courts/` · `/api/time-slots/` |
+| 场馆 | `GET/POST/PATCH/DELETE /api/venues/` · `/api/courts/` · `/api/time-slots/` · `GET /api/venues/public/`（**游客可访问**，只返回启用中的场馆基础信息，用于未登录首页） |
 | 预约 | `GET/POST /api/bookings/` · `GET /api/bookings/my/` · `POST /api/bookings/{id}/pay/` · `cancel/` · `check_in/` · `GET /api/bookings/export_csv/` |
 | 支付 | `GET /api/payments/` · `POST /api/payments/recharge/` · `POST /api/payments/pay/` · `GET /api/payments/export_csv/` |
 | 公告 | `GET/POST/PATCH/DELETE /api/announcements/` · `POST /api/announcements/{id}/toggle_publish/` |

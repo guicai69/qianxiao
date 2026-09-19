@@ -2,140 +2,144 @@
   <div class="reception-dashboard">
     <div class="page-header">
       <div>
-        <h2>操作台</h2>
-        <p>今日预约、待处理与营收概览</p>
+        <h2>今日值班</h2>
+        <p>今日到店与待签到订单，收款即核销</p>
       </div>
-      <div class="refresh-hint">
-        <el-icon :class="{ spinning: refreshing }"><Refresh /></el-icon>
-        <span>{{ lastUpdated ? "更新于 " + lastUpdated : "加载中…" }}</span>
-      </div>
+      <span class="stamp mono">{{ lastUpdated ? `更新于 ${lastUpdated}` : "同步中" }}</span>
     </div>
 
-    <el-row :gutter="16" class="stat-grid">
-      <el-col :xs="24" :sm="8">
-        <el-card shadow="never" class="stat-card">
-          <div class="stat-card-inner">
-            <span class="stat-icon soft-blue"><el-icon :size="24"><Calendar /></el-icon></span>
-            <div>
-              <span>今日预约</span>
-              <strong>{{ stats.today_bookings }}</strong>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="8">
-        <el-card shadow="never" class="stat-card">
-          <div class="stat-card-inner">
-            <span class="stat-icon soft-amber"><el-icon :size="24"><Warning /></el-icon></span>
-            <div>
-              <span>待处理</span>
-              <strong>{{ stats.today_pending }}</strong>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="8">
-        <el-card shadow="never" class="stat-card">
-          <div class="stat-card-inner">
-            <span class="stat-icon soft-green"><el-icon :size="24"><Money /></el-icon></span>
-            <div>
-              <span>今日营收</span>
-              <strong>¥{{ Number(stats.today_revenue || 0).toFixed(2) }}</strong>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <el-row :gutter="16" class="content-row">
-      <el-col :xs="24" :lg="14">
-        <el-card shadow="never" class="table-card">
-          <template #header>
-            <div class="card-header-title">
-              <span>今日预约</span>
-              <div class="header-actions">
-                <el-tag effect="plain" type="warning" round>{{ pendingCount }} 笔待处理</el-tag>
-                <el-button link type="primary" @click="$router.push('/admin/bookings')">全部订单</el-button>
-              </div>
-            </div>
-          </template>
-          <el-table :data="todayBookings" v-loading="loading" empty-text="今日暂无预约">
-            <el-table-column label="用户" min-width="110">
-              <template #default="{ row }">{{ row.user_nickname || row.user_phone }}</template>
-            </el-table-column>
-            <el-table-column prop="court_name" label="场地" width="90" />
-            <el-table-column prop="time_slot_display" label="时段" width="110" />
-            <el-table-column label="金额" width="90">
-              <template #default="{ row }">
-                <span class="amount">¥{{ row.amount }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="状态" width="90">
-              <template #default="{ row }">
-                <el-tag
-                  :type="{ pending: 'warning', paid: 'success', cancelled: 'info' }[row.status]"
-                  effect="light"
-                  round
-                  size="small"
-                >
-                  {{ { pending: "待支付", paid: "已支付", cancelled: "已取消" }[row.status] }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="140" fixed="right">
-              <template #default="{ row }">
-                <el-button
-                  v-if="row.status === 'pending'"
-                  size="small"
-                  type="success"
-                  @click="handlePay(row)"
-                >
-                  收款
-                </el-button>
-                <el-button
-                  v-if="row.status !== 'cancelled'"
-                  size="small"
-                  @click="handleCancel(row)"
-                >
-                  取消
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
-
-      <el-col :xs="24" :lg="10">
-        <div class="side-stack">
-          <el-card shadow="never" class="chart-card">
-            <template #header>
-              <div class="card-header-title">
-                <span>近 7 日营收</span>
-                <el-tag effect="plain" type="success" round>趋势</el-tag>
-              </div>
-            </template>
-            <div ref="trendChartRef" class="chart-box"></div>
-          </el-card>
-
-          <el-card shadow="never" class="quick-card">
-            <template #header>
-              <span class="quick-title">快捷入口</span>
-            </template>
-            <div class="quick-actions">
-              <el-button type="primary" @click="$router.push('/admin/venues')">
-                <el-icon><OfficeBuilding /></el-icon>场馆管理
-              </el-button>
-              <el-button @click="$router.push('/admin/bookings')">
-                <el-icon><Tickets /></el-icon>预约管理
-              </el-button>
-              <el-button @click="$router.push('/admin/payments')">
-                <el-icon><Wallet /></el-icon>支付记录
-              </el-button>
-            </div>
-          </el-card>
+    <!-- 今日概览：发丝线规格带，不是一排卡片 -->
+    <section class="spec-band">
+      <div v-for="(item, i) in overview" :key="item.label" class="spec">
+        <div
+          class="spec__num"
+          :class="{ 'count-up': ready }"
+          :style="{ '--i': String(i) }"
+        >
+          {{ item.value }}
         </div>
-      </el-col>
-    </el-row>
+        <div class="spec__label">{{ item.label }}</div>
+      </div>
+    </section>
+
+    <!-- 主体：今日到店 / 待签到，每行可直接收款核销 -->
+    <article class="panel">
+      <header class="panel__head">
+        <h3>今日到店 / 待签到</h3>
+        <div class="head-actions">
+          <el-tag effect="plain" type="warning" round>{{ pendingCount }} 笔待处理</el-tag>
+          <el-button link type="primary" @click="$router.push('/admin/bookings')">
+            全部订单
+          </el-button>
+        </div>
+      </header>
+      <!-- 窄屏：表格会横向滚动且固定操作列压住数据，改成一行一位的名单 -->
+      <ul v-if="isNarrow" v-loading="booting" class="roster">
+        <li v-for="row in todayBookings" :key="row.id" class="roster__row">
+          <div class="roster__who">
+            <strong>{{ row.user_nickname || row.user_phone }}</strong>
+            <span class="roster__meta mono">
+              {{ row.court_name }} · {{ row.time_slot_display }} · ¥{{ row.amount }}
+            </span>
+          </div>
+          <div class="roster__act">
+            <el-tag
+              :type="{ pending: 'warning', paid: 'success', cancelled: 'info' }[row.status]"
+              effect="light"
+              round
+              size="small"
+            >
+              {{ { pending: "待支付", paid: "已支付", cancelled: "已取消" }[row.status] }}
+            </el-tag>
+            <el-button
+              v-if="row.status === 'pending'"
+              type="success"
+              @click="handlePay(row)"
+            >
+              收款
+            </el-button>
+            <el-button v-if="row.status !== 'cancelled'" @click="handleCancel(row)">
+              取消
+            </el-button>
+          </div>
+        </li>
+        <li v-if="!booting && !todayBookings.length" class="roster__empty">今日暂无预约</li>
+      </ul>
+
+      <el-table v-else :data="todayBookings" v-loading="booting" empty-text="今日暂无预约">
+        <el-table-column label="用户" min-width="110">
+          <template #default="{ row }">{{ row.user_nickname || row.user_phone }}</template>
+        </el-table-column>
+        <el-table-column prop="court_name" label="场地" width="90" />
+        <el-table-column prop="time_slot_display" label="时段" width="110" />
+        <el-table-column label="金额" width="90">
+          <template #default="{ row }">
+            <span class="amount mono">¥{{ row.amount }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="90">
+          <template #default="{ row }">
+            <el-tag
+              :type="{ pending: 'warning', paid: 'success', cancelled: 'info' }[row.status]"
+              effect="light"
+              round
+              size="small"
+            >
+              {{ { pending: "待支付", paid: "已支付", cancelled: "已取消" }[row.status] }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="140" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              v-if="row.status === 'pending'"
+              size="small"
+              type="success"
+              @click="handlePay(row)"
+            >
+              收款
+            </el-button>
+            <el-button
+              v-if="row.status !== 'cancelled'"
+              size="small"
+              @click="handleCancel(row)"
+            >
+              取消
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </article>
+
+    <section class="lower">
+      <article class="panel">
+        <header class="panel__head">
+          <h3>近 7 日营收</h3>
+          <span class="caps">已支付订单</span>
+        </header>
+        <div class="chart-shell">
+          <div ref="trendChartRef" class="chart-box"></div>
+          <p v-if="ready && !trendData.length" class="chart-empty">近 7 日暂无营收记录</p>
+        </div>
+      </article>
+
+      <article class="panel">
+        <header class="panel__head">
+          <h3>快捷入口</h3>
+        </header>
+        <div class="quick-actions">
+          <el-button type="primary" @click="$router.push('/admin/venues')">
+            <el-icon><OfficeBuilding /></el-icon>场馆管理
+          </el-button>
+          <el-button @click="$router.push('/admin/bookings')">
+            <el-icon><Tickets /></el-icon>预约管理
+          </el-button>
+          <el-button @click="$router.push('/admin/payments')">
+            <el-icon><Wallet /></el-icon>支付记录
+          </el-button>
+        </div>
+      </article>
+    </section>
   </div>
 </template>
 
@@ -144,31 +148,44 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue"
 import * as echarts from "echarts"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { useIntervalFn, useDocumentVisibility } from "@vueuse/core"
-import {
-  Calendar,
-  Warning,
-  Money,
-  OfficeBuilding,
-  Tickets,
-  Wallet,
-  Refresh,
-} from "@element-plus/icons-vue"
+import { OfficeBuilding, Tickets, Wallet } from "@element-plus/icons-vue"
 import { statsApi } from "@/api/stats"
 import { bookingApi } from "@/api/bookings"
 import { paymentApi } from "@/api/payments"
+import { CHART_COLORS, CHART_ANIMATION, alpha, chartAxis, chartTooltip } from "@/utils/chartTheme"
 
 const stats = ref({ today_bookings: 0, today_pending: 0, today_revenue: 0 })
 const todayBookings = ref([])
 const trendData = ref([])
-const loading = ref(false)
-const refreshing = ref(false)
+const booting = ref(true)
+const ready = ref(false)
 const lastUpdated = ref("")
 const trendChartRef = ref(null)
 let trendChart = null
 
+/* 窄屏换名单式列表：横向滚动的表格在手机上会把固定操作列压在数据上 */
+const narrowQuery =
+  typeof window !== "undefined" ? matchMedia("(max-width: 780px)") : null
+const isNarrow = ref(!!narrowQuery?.matches)
+
+function onNarrowChange(e) {
+  isNarrow.value = e.matches
+}
+
 const pendingCount = computed(() =>
   todayBookings.value.filter((b) => b.status === "pending").length
 )
+
+/* 顶部一行概览，全部是统计接口已有字段 */
+const overview = computed(() => {
+  const s = stats.value || {}
+  return [
+    { label: "今日预约", value: String(s.today_bookings || 0) },
+    { label: "待处理", value: String(s.today_pending || 0) },
+    { label: "今日营收", value: `¥${Number(s.today_revenue || 0).toFixed(2)}` },
+    { label: "已收款", value: String(s.today_paid || 0) },
+  ]
+})
 
 function todayStr() {
   const d = new Date()
@@ -183,7 +200,6 @@ function fmtTime() {
 }
 
 async function refresh() {
-  refreshing.value = true
   try {
     const [stRes, bookingRes, trendRes] = await Promise.all([
       statsApi.overview(),
@@ -198,7 +214,9 @@ async function refresh() {
   } catch {
     // handled by request interceptor
   } finally {
-    refreshing.value = false
+    /* 只在首屏给一次加载态，之后每 5 秒刷新不再重挂骨架 */
+    booting.value = false
+    ready.value = true
   }
 }
 
@@ -208,30 +226,22 @@ function initChart() {
   const dates = trendData.value.map((d) => String(d.date).slice(5))
   const revenues = trendData.value.map((d) => Number(d.revenue || 0))
   trendChart.setOption({
-    tooltip: {
+    animation: CHART_ANIMATION,
+    tooltip: chartTooltip({
       trigger: "axis",
-      backgroundColor: "#ffffff",
-      borderColor: "#e5e7eb",
-      textStyle: { color: "#1f2937" },
       formatter: (params) => {
         const idx = params?.[0]?.dataIndex ?? 0
         return `${dates[idx]}<br/>营收：¥${(revenues[idx] ?? 0).toFixed(2)}`
       },
-    },
-    grid: { left: 52, right: 20, top: 24, bottom: 28 },
-    xAxis: {
+    }),
+    grid: { left: 4, right: 28, top: 16, bottom: 4, containLabel: true },
+    xAxis: chartAxis({
       type: "category",
       boundaryGap: false,
       data: dates,
-      axisLabel: { fontSize: 11, color: "#64748b" },
-      axisLine: { lineStyle: { color: "#e5e7eb" } },
-      axisTick: { show: false },
-    },
-    yAxis: {
-      type: "value",
-      axisLabel: { color: "#64748b" },
-      splitLine: { lineStyle: { color: "#eef1f5" } },
-    },
+      splitLine: { show: false },
+    }),
+    yAxis: chartAxis({ type: "value" }),
     series: [
       {
         type: "line",
@@ -239,12 +249,12 @@ function initChart() {
         data: revenues,
         symbol: "circle",
         symbolSize: 7,
-        lineStyle: { width: 3, color: "#16a34a" },
-        itemStyle: { color: "#16a34a", borderColor: "#ffffff", borderWidth: 2 },
+        lineStyle: { width: 2.5, color: CHART_COLORS[0] },
+        itemStyle: { color: CHART_COLORS[0] },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: "rgba(22, 163, 74, 0.22)" },
-            { offset: 1, color: "rgba(22, 163, 74, 0.02)" },
+            { offset: 0, color: alpha(CHART_COLORS[0], 0.2) },
+            { offset: 1, color: alpha(CHART_COLORS[0], 0.02) },
           ]),
         },
       },
@@ -289,11 +299,13 @@ function handleResize() {
 
 onMounted(() => {
   refresh()
+  narrowQuery?.addEventListener("change", onNarrowChange)
   window.addEventListener("resize", handleResize)
 })
 
 onUnmounted(() => {
   pauseTimer()
+  narrowQuery?.removeEventListener("change", onNarrowChange)
   trendChart?.dispose()
   window.removeEventListener("resize", handleResize)
 })
@@ -303,7 +315,8 @@ onUnmounted(() => {
 .reception-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
+  min-width: 0;
 }
 
 .page-header {
@@ -311,133 +324,157 @@ onUnmounted(() => {
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
-.refresh-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--mui-muted);
-  font-size: 13px;
-  font-weight: 600;
+.stamp {
+  color: var(--ink-4);
+  font-size: var(--fs-12);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
-.refresh-hint .el-icon {
-  color: var(--mui-primary);
+/* ---------- 今日概览 ---------- */
+
+.spec-band .spec {
+  padding: 18px 20px;
 }
 
-.spinning {
-  animation: spin 0.8s linear infinite;
+.spec-band .spec__num {
+  font-size: var(--fs-22);
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* ---------- 面板 ---------- */
 
-.stat-grid,
-.content-row {
-  row-gap: 16px;
-}
-
-.stat-card {
-  height: 100%;
-}
-
-.stat-card :deep(.el-card__body) {
-  padding: 18px;
-}
-
-.stat-card-inner {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.stat-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-}
-
-.soft-blue {
-  color: #1976d2;
-  background: #e8f1fb;
-}
-
-.soft-amber {
-  color: #d97706;
-  background: #fffbeb;
-}
-
-.soft-green {
-  color: #16a34a;
-  background: #ecfdf5;
-}
-
-.stat-card-inner div {
+.panel {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  padding: 18px 20px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 
-.stat-card-inner div span {
-  color: var(--mui-muted);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.stat-card-inner div strong {
-  margin-top: 4px;
-  color: var(--mui-text);
-  font-size: 26px;
-  font-weight: 800;
-}
-
-.table-card,
-.chart-card,
-.quick-card {
-  width: 100%;
-}
-
-.side-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.card-header-title {
+.panel__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 14px;
+  min-width: 0;
 }
 
-.card-header-title span {
-  font-size: 15px;
+.panel__head h3 {
+  margin: 0;
+  font-size: var(--fs-14);
   font-weight: 700;
+  color: var(--ink-1);
+  min-width: 0;
 }
 
-.header-actions {
+.head-actions {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .amount {
-  color: var(--mui-primary);
-  font-weight: 800;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ---------- 窄屏名单：一行一位，操作直接给到手上 ---------- */
+
+.roster {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.roster__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-soft);
+  min-width: 0;
+}
+
+.roster__row:last-child {
+  border-bottom: 0;
+}
+
+.roster__who {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1 1 140px;
+}
+
+.roster__who strong {
+  font-size: var(--fs-14);
+  font-weight: 700;
+  color: var(--ink-1);
+  overflow-wrap: anywhere;
+}
+
+.roster__meta {
+  font-size: var(--fs-12);
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+.roster__act {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.roster__act .el-button {
+  min-height: 34px;
+  margin-left: 0;
+}
+
+.roster__empty {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: var(--fs-13);
+}
+
+.lower {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+}
+
+.chart-shell {
+  position: relative;
+  min-width: 0;
 }
 
 .chart-box {
   height: 260px;
 }
 
-.quick-title {
-  font-weight: 700;
+.chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-3);
+  font-size: var(--fs-13);
 }
 
 .quick-actions {
@@ -451,10 +488,33 @@ onUnmounted(() => {
   margin-left: 0;
 }
 
+/* ---------- 断点 ---------- */
+
+@media (max-width: 1100px) {
+  .lower {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 640px) {
   .page-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 8px;
+  }
+
+  .spec-band .spec {
+    padding: 14px 16px;
+  }
+
+  .chart-box {
+    height: 220px;
+  }
+}
+
+@media (max-width: 400px) {
+  .spec-band .spec__num {
+    font-size: var(--fs-18);
   }
 }
 </style>

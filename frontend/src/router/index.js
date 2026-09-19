@@ -27,7 +27,9 @@ const routes = [
     path: '/reception',
     component: () => import('@/layouts/AdminLayout.vue'),
     redirect: '/reception/dashboard',
-    meta: { roles: ['reception'] },
+    // 管理员也放进来：一个账号就能演示"看数据 + 到店核销"整条链路
+    // （后端 check_in / pay 用的就是 IsAdminOrReception，权限本来就允许）
+    meta: { roles: ['reception', 'admin'] },
     children: [
       { path: 'dashboard', component: () => import('@/views/reception/Dashboard.vue'), meta: { title: '操作台' } },
     ],

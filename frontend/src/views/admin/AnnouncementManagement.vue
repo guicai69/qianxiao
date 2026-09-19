@@ -1,49 +1,49 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
+    <header class="page-header">
       <h2>公告管理</h2>
       <p>发布、置顶与管理场馆公告，会员端首页可见</p>
-    </div>
+    </header>
 
-    <el-card class="toolbar-card">
+    <section class="surface panel">
       <div class="page-toolbar">
         <el-input
           v-model="query.keyword"
           placeholder="搜索公告标题"
           clearable
           :prefix-icon="Search"
-          style="max-width: 280px"
+          class="search-input"
           @keyup.enter="handleSearch"
         />
-        <div>
+        <div class="toolbar-actions">
           <el-button @click="resetQuery">重置</el-button>
           <el-button type="primary" @click="openDialog()">
             <el-icon class="el-icon--left"><Plus /></el-icon>新增公告
           </el-button>
         </div>
       </div>
-    </el-card>
 
-    <el-card>
-      <el-table :data="list" border stripe v-loading="loading" empty-text="暂无公告">
-        <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="title" label="标题" min-width="220" show-overflow-tooltip />
-        <el-table-column label="置顶" width="80" align="center">
+      <el-table :data="list" v-loading="loading">
+        <el-table-column prop="id" label="ID" width="70">
+          <template #default="{ row }"><span class="mono dim">{{ row.id }}</span></template>
+        </el-table-column>
+        <el-table-column prop="title" label="标题" min-width="240" show-overflow-tooltip />
+        <el-table-column label="置顶" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.is_pinned ? 'danger' : 'info'" effect="light" round size="small">
+            <el-tag :type="row.is_pinned ? 'warning' : 'info'" effect="light" round size="small">
               {{ row.is_pinned ? '置顶' : '普通' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="90" align="center">
+        <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.is_published ? 'success' : 'info'" effect="light" round size="small">
+            <el-tag :type="row.is_published ? 'success' : 'warning'" effect="light" round size="small">
               {{ row.is_published ? '已发布' : '草稿' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="170">
-          <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
+        <el-table-column label="创建时间" width="180">
+          <template #default="{ row }"><span class="mono dim">{{ formatTime(row.created_at) }}</span></template>
         </el-table-column>
         <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
@@ -56,24 +56,33 @@
             <el-button size="small" type="primary" @click="openDialog(row)">编辑</el-button>
             <el-popconfirm title="确定删除该公告？" @confirm="handleDelete(row.id)">
               <template #reference>
-                <el-button size="small" type="danger">删除</el-button>
+                <el-button size="small" type="danger" plain>删除</el-button>
               </template>
             </el-popconfirm>
           </template>
         </el-table-column>
+
+        <template #empty>
+          <div class="empty-state">
+            <strong>还没有公告，先写一条</strong>
+            <span>发布后会员端首页的公告栏就能看到。</span>
+          </div>
+        </template>
       </el-table>
 
-      <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.page_size"
-        :total="total"
-        layout="total, prev, pager, next"
-        @current-change="fetchData"
-        class="table-footer"
-      />
-    </el-card>
+      <div class="table-footer">
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.page_size"
+          :total="total"
+          :pager-count="5"
+          layout="total, prev, pager, next"
+          @current-change="fetchData"
+        />
+      </div>
+    </section>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑公告' : '新增公告'" width="560px">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑公告' : '新增公告'" width="min(560px, 92vw)">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="标题" prop="title">
           <el-input v-model="form.title" placeholder="请输入公告标题" maxlength="100" show-word-limit />
@@ -221,11 +230,55 @@ onMounted(fetchData)
 </script>
 
 <style scoped>
-.toolbar-card {
-  margin-bottom: 16px;
+.panel {
+  padding: 20px;
 }
 
-.toolbar-card :deep(.el-card__body) {
-  padding: 0;
+.panel :deep(.page-toolbar) {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* 固定列要有不透明底色，否则横向滚动时下面的单元格会透出来 */
+.panel :deep(.el-table) {
+  --el-table-tr-bg-color: var(--surface);
+}
+
+/* 表格空态要占满整宽，不能跟着表格布局计算塌成窄条 */
+.panel :deep(.el-table__empty-block) {
+  width: 100% !important;
+}
+
+.panel :deep(.el-table__empty-text) {
+  width: 100%;
+  line-height: normal;
+}
+
+.search-input {
+  max-width: 280px;
+}
+
+.table-footer :deep(.el-pagination) {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .panel {
+    padding: 14px;
+  }
+
+  .search-input {
+    max-width: none;
+    width: 100%;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+  }
+
+  .toolbar-actions :deep(.el-button) {
+    flex: 1 1 auto;
+  }
 }
 </style>
