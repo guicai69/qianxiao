@@ -2,6 +2,8 @@ import api from '@/api'
 
 export const venueApi = {
   list(params) { return api.get('venues/', params) },
+  // 游客可见的场馆清单（只读、不含场地与价格明细），未登录的首页用
+  publicList(params) { return api.get('venues/public/', params) },
   detail(id) { return api.get(`venues/${id}/`) },
   availability(id, params) { return api.get(`venues/${id}/availability/`, params) },
   create(data) { return api.post('venues/', data) },

@@ -1,83 +1,99 @@
 <template>
   <div class="payment-history">
-    <div class="page-header">
+    <header class="page-header">
       <h2>支付记录</h2>
-      <p>查看充值记录、消费记录与当前余额</p>
-    </div>
+      <p>充值、消费与退款流水，余额实时结算</p>
+    </header>
 
-    <div class="history-layout">
-      <el-card shadow="never" class="balance-card">
-        <span class="balance-icon"><el-icon :size="24"><Wallet /></el-icon></span>
-        <span class="balance-label">当前余额</span>
-        <strong class="balance-value">¥{{ balance }}</strong>
-        <el-button type="primary" round @click="showRecharge = true">充值</el-button>
-      </el-card>
+    <section class="surface ledger">
+      <header class="ledger-head">
+        <div class="ledger-balance">
+          <span class="field-label">账户余额</span>
+          <strong class="mono">¥{{ money(balance) }}</strong>
+        </div>
+        <el-button type="primary" class="ledger-cta" @click="showRecharge = true">
+          <el-icon class="el-icon--left"><Wallet /></el-icon>充值
+        </el-button>
+      </header>
 
-      <div class="history-main">
-        <el-tabs v-model="activeType" @tab-change="fetchData">
-          <el-tab-pane label="全部" name="" />
-          <el-tab-pane label="消费记录" name="booking" />
-          <el-tab-pane label="充值记录" name="recharge" />
-          <el-tab-pane label="退款记录" name="refund" />
-        </el-tabs>
+      <div class="ledger-filter">
+        <el-radio-group v-model="activeType" @change="fetchData">
+          <el-radio-button value="">全部</el-radio-button>
+          <el-radio-button value="booking">消费</el-radio-button>
+          <el-radio-button value="recharge">充值</el-radio-button>
+          <el-radio-button value="refund">退款</el-radio-button>
+        </el-radio-group>
+        <span class="ledger-count mono">{{ total }} 条</span>
+      </div>
 
-        <el-card shadow="never">
-          <el-table :data="list" v-loading="loading" empty-text="暂无记录">
-            <el-table-column label="类型" width="100">
+      <div class="ledger-body">
+        <el-skeleton v-if="loading && !list.length" :rows="5" animated class="ledger-skeleton" />
+
+        <template v-else>
+          <el-table
+            :data="list"
+            v-loading="loading"
+            element-loading-background="transparent"
+            class="ledger-table"
+          >
+            <el-table-column label="类型" width="88">
               <template #default="{ row }">
-                <el-tag
-                  :type="{ recharge: 'success', booking: 'warning', refund: 'info' }[row.type] || 'info'"
-                  effect="light"
-                  round
-                  size="small"
-                >
-                  {{ { recharge: "充值", booking: "消费", refund: "退款" }[row.type] || row.type }}
+                <el-tag :type="typeTag(row.type)" effect="light" round size="small">
+                  {{ typeLabel(row.type) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="金额" width="160">
+
+            <el-table-column label="金额" width="150" align="right">
               <template #default="{ row }">
-                <span class="amount">¥{{ row.amount }}</span>
-                <span v-if="row.bonus && Number(row.bonus) > 0" class="bonus-text">
-                  +送 ¥{{ row.bonus }}
+                <span class="amount mono">¥{{ money(row.amount) }}</span>
+                <span v-if="Number(row.bonus) > 0" class="amount-bonus mono">
+                  送 ¥{{ money(row.bonus) }}
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="方式" width="110">
+
+            <el-table-column label="方式" width="96">
               <template #default="{ row }">
-                {{ { balance: "余额", wechat: "微信", alipay: "支付宝" }[row.method] }}
+                <span class="method">{{ methodLabel(row.method) }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="100">
+
+            <el-table-column label="状态" width="96">
               <template #default="{ row }">
-                <el-tag
-                  :type="row.status === 'success' ? 'success' : 'info'"
-                  effect="light"
-                  round
-                  size="small"
-                >
-                  {{ row.status === "success" ? "成功" : "失败" }}
+                <el-tag :type="statusTag(row.status)" effect="light" round size="small">
+                  {{ statusLabel(row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
+
             <el-table-column label="时间" min-width="170">
               <template #default="{ row }">
-                {{ row.created_at?.slice(0, 19).replace("T", " ") }}
+                <time class="time mono">{{ formatTime(row.created_at) }}</time>
               </template>
             </el-table-column>
+
+            <template #empty>
+              <div class="empty-state">
+                <strong>没有匹配的支付记录</strong>
+                <span>换个类型再看看，或者先充值一笔，流水会出现在这里。</span>
+              </div>
+            </template>
           </el-table>
+
           <el-pagination
             v-model:current-page="query.page"
             :total="total"
-            layout="total, prev, pager, next"
+            :page-size="query.page_size"
+            layout="prev, pager, next"
             @current-change="fetchData"
             class="table-footer"
           />
-        </el-card>
+        </template>
       </div>
-    </div>
+    </section>
 
-    <el-dialog v-model="showRecharge" title="余额充值" width="380px">
+    <el-dialog v-model="showRecharge" title="余额充值" width="440px" class="narrow-dialog">
       <el-form :model="rechargeForm" label-width="80px">
         <el-form-item label="充值金额">
           <el-input-number v-model="rechargeForm.amount" :min="1" :step="50" style="width: 210px" />
@@ -89,10 +105,15 @@
           </el-radio-group>
         </el-form-item>
       </el-form>
-      <div class="recharge-bonus">
-        <span>充值赠送</span>
-        <strong>¥{{ rechargeBonus }}，到账 ¥{{ rechargeBonus + rechargeForm.amount }}</strong>
+
+      <div class="receipt">
+        <span class="receipt__label">实付</span>
+        <strong class="receipt__pay mono">¥{{ money(rechargeForm.amount) }}</strong>
+        <span class="receipt__arrow" aria-hidden="true">→</span>
+        <span class="receipt__label">到账</span>
+        <strong class="receipt__get mono">¥{{ money(rechargeCredit) }}</strong>
       </div>
+
       <template #footer>
         <el-button @click="showRecharge = false">取消</el-button>
         <el-button type="primary" :loading="recharging" @click="handleRecharge">确认充值</el-button>
@@ -119,8 +140,18 @@ const activeType = ref("")
 const balance = ref(userStore.userInfo?.balance || 0)
 const rechargeForm = reactive({ amount: 100, method: "wechat" })
 const rechargeBonus = computed(() => getRechargeBonus(rechargeForm.amount))
+const rechargeCredit = computed(() => Number(rechargeForm.amount || 0) + rechargeBonus.value)
 
 const query = reactive({ page: 1, page_size: 20 })
+
+const money = (v) => Number(v || 0).toFixed(2)
+const formatTime = (t) => (t || "").slice(0, 19).replace("T", " ")
+const typeLabel = (t) => ({ recharge: "充值", booking: "消费", refund: "退款" }[t] || t)
+const typeTag = (t) => ({ recharge: "success", booking: "primary", refund: "warning" }[t] || "info")
+const methodLabel = (m) =>
+  ({ balance: "余额", wechat: "微信", alipay: "支付宝", cash: "现金" }[m] || "其他")
+const statusLabel = (s) => ({ success: "成功", failed: "失败", pending: "处理中" }[s] || s)
+const statusTag = (s) => ({ success: "success", failed: "danger", pending: "info" }[s] || "info")
 
 async function fetchData() {
   loading.value = true
@@ -167,95 +198,198 @@ onMounted(fetchData)
 <style scoped>
 .payment-history {
   width: 100%;
-  max-width: 1080px;
+  max-width: 1040px;
   margin: 0 auto;
+  padding: 28px 24px 72px;
 }
 
-.history-layout {
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.balance-card {
-  position: sticky;
-  top: 84px;
-  text-align: center;
-}
-
-.balance-card :deep(.el-card__body) {
+.ledger {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 24px 18px;
 }
 
-.balance-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  color: var(--mui-primary);
-  background: var(--mui-primary-soft);
-}
+/* ---------- 余额 ---------- */
 
-.balance-label {
-  color: var(--mui-muted);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.balance-value {
-  color: var(--mui-primary);
-  font-size: 28px;
-  font-weight: 800;
-}
-
-.history-main {
-  min-width: 0;
-}
-
-.amount {
-  color: var(--mui-primary);
-  font-weight: 800;
-}
-
-.bonus-text {
-  margin-left: 6px;
-  color: var(--mui-success);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.recharge-bonus {
+.ledger-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 6px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  color: var(--mui-muted);
-  background: #f8fafc;
-  font-size: 13px;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border-soft);
 }
 
-.recharge-bonus strong {
-  color: var(--mui-primary);
+.ledger-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.ledger-balance strong {
+  font-size: var(--fs-28);
   font-weight: 800;
+  line-height: 1.1;
+  color: var(--ink-1);
 }
 
-@media (max-width: 800px) {
-  .history-layout {
-    grid-template-columns: 1fr;
+.ledger-cta {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 22px;
+}
+
+/* ---------- 筛选 ---------- */
+
+.ledger-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.ledger-count {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-4);
+  white-space: nowrap;
+}
+
+/* ---------- 表格 ---------- */
+
+.ledger-body {
+  padding: 4px 8px 12px;
+}
+
+.ledger-skeleton {
+  padding: 18px 12px;
+}
+
+.ledger-table :deep(.el-table__cell) {
+  padding: 13px 0;
+}
+
+.amount {
+  font-size: var(--fs-14);
+  font-weight: 700;
+  color: var(--ink-1);
+  white-space: nowrap;
+}
+
+.amount-bonus {
+  display: block;
+  font-size: var(--fs-11);
+  font-weight: 700;
+  color: var(--up);
+}
+
+.method,
+.time {
+  font-size: var(--fs-13);
+  color: var(--ink-3);
+}
+
+.time {
+  white-space: nowrap;
+}
+
+/* ---------- 充值弹窗 ---------- */
+
+.receipt {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding: 12px 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  font-size: var(--fs-13);
+}
+
+.receipt__label {
+  color: var(--ink-3);
+}
+
+.receipt__pay {
+  font-size: var(--fs-16);
+  font-weight: 800;
+  color: var(--ink-1);
+}
+
+.receipt__arrow {
+  color: var(--ink-4);
+}
+
+.receipt__get {
+  font-size: var(--fs-16);
+  font-weight: 800;
+  color: var(--accent);
+}
+
+/* ---------- 断点 ---------- */
+
+@media (max-width: 640px) {
+  .payment-history {
+    padding: 20px 16px 56px;
   }
 
-  .balance-card {
-    position: static;
+  .ledger-head,
+  .ledger-filter {
+    padding: 14px 16px;
   }
+
+  .ledger-balance strong {
+    font-size: var(--fs-22);
+  }
+
+  .ledger-cta {
+    min-height: 44px;
+  }
+
+  .ledger-filter :deep(.el-radio-group) {
+    display: flex;
+    width: 100%;
+  }
+
+  .ledger-filter :deep(.el-radio-button) {
+    flex: 1;
+  }
+
+  .ledger-filter :deep(.el-radio-button__inner) {
+    width: 100%;
+    height: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--fs-12);
+  }
+
+  .table-footer {
+    justify-content: center;
+  }
+
+  .table-footer :deep(.el-pagination) {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    justify-content: center;
+  }
+}
+</style>
+
+<style>
+/* 弹窗挂在 body 上，作用域样式够不到；窄屏下不许横向溢出 */
+.el-dialog.narrow-dialog {
+  max-width: calc(100vw - 32px);
 }
 </style>

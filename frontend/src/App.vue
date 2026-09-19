@@ -27,16 +27,19 @@ onMounted(async () => {
 </script>
 
 <style>
+/* 路由切换：只动 opacity 和 transform，不要 transition: all（all 会连布局属性一起动） */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-  transition: all 0.4s ease;
+  transition: opacity var(--dur-3) var(--ease-out), transform var(--dur-3) var(--ease-out);
 }
+
 .fade-slide-enter-from {
   opacity: 0;
-  transform: translateX(20px);
+  transform: translateY(8px);
 }
+
 .fade-slide-leave-to {
   opacity: 0;
-  transform: translateX(-20px);
+  transform: translateY(-6px);
 }
 </style>

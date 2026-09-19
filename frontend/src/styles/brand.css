@@ -1,0 +1,436 @@
+/* finesse · register=brand · A=sodium-amber-on-ink-green · B=800/300 + mono numerals
+ * C=perspective-court + contact-sheet · D=R1-svg-draw + R2 animation-timeline: view/scroll
+ * E=film contact sheet · SOUL=8 SPECTACLE=7 DENSITY=4 */
+
+/* ==========================================================================
+   brand —— 球馆平面与"接触印相表"的共用原语
+   只用在会员门面（首屏、登录注册、场馆印相表），不进入后台表格区。
+   ========================================================================== */
+
+/* ---------- 整块球馆：暗色、带颗粒、带自下而上的压暗 ---------- */
+
+.hall-section {
+  position: relative;
+  isolation: isolate;
+  background: var(--page);
+  color: var(--ink-1);
+  overflow: clip;
+}
+
+.hall-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--scrim);
+}
+
+.hall-inner {
+  position: relative;
+  z-index: 2;
+}
+
+/* ---------- 排版：大字号、负字距、极端字重对比 ---------- */
+
+.display-1 {
+  font-size: clamp(38px, 6.2vw, 78px);
+  font-weight: 900;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.display-2 {
+  font-size: clamp(26px, 3.4vw, 42px);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.display-3 {
+  font-size: clamp(20px, 2vw, 26px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.lede {
+  font-size: clamp(15px, 1.2vw, 17px);
+  font-weight: 300;
+  line-height: 1.75;
+  color: var(--ink-2);
+  max-width: 46ch;
+  margin: 0;
+}
+
+/* ---------- 场地白线：球馆平面的分隔线 ---------- */
+
+.rule-line {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.02));
+}
+
+/* 编号：印相表上的格号。有理由的编号，不是装饰 */
+.frame-no {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-11);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ink-4);
+}
+
+/* ---------- 照片：统一调色，让不同来源的照片像一次拍出来的 ---------- */
+
+.photo {
+  position: relative;
+  overflow: hidden;
+  background: var(--sunken);
+}
+
+.photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.86) contrast(1.06) brightness(0.97);
+}
+
+.photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  background: linear-gradient(180deg, rgba(60, 46, 22, 0.06) 0%, rgba(11, 16, 14, 0.42) 100%);
+}
+
+.photo--flat::after {
+  background: linear-gradient(180deg, rgba(60, 46, 22, 0.05) 0%, rgba(20, 32, 26, 0.18) 100%);
+}
+
+/* ---------- 接触印相表：一排球场就是一张印相表 ---------- */
+
+.sheet {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .sheet { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .sheet { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  /* 首页的印相表用不齐的格子：第一格占两格宽，五格刚好铺满两行，不留洞 */
+  .sheet--index { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .sheet--index > :nth-child(1) { grid-column: span 4; }
+  /* 3.2:1 是为了让这一格的照片高度和旁边两格一格宽的照片高度对齐，
+     不然一行里会长短不齐，卡片底下留出一块白 */
+  .sheet--index > :nth-child(1) .frame__media { aspect-ratio: 3.2 / 1; }
+  .sheet--index > :nth-child(n + 2) { grid-column: span 2; }
+}
+
+.frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform var(--dur-3) var(--ease-out), box-shadow var(--dur-3) var(--ease-out),
+    border-color var(--dur-3) var(--ease-out);
+}
+
+.frame--link {
+  cursor: pointer;
+  text-align: left;
+}
+
+.frame__media {
+  position: relative;
+  flex: none;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  /* 照片没加载出来时，露出的是一块球场地板，不是一块灰 */
+  background-color: #17281f;
+  background-image:
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(248, 252, 246, 0.14) 50%, transparent calc(50% + 1px)),
+    linear-gradient(0deg, transparent calc(50% - 1px), rgba(248, 252, 246, 0.14) 50%, transparent calc(50% + 1px)),
+    radial-gradient(60% 50% at 50% 50%, rgba(232, 163, 61, 0.12), transparent 72%);
+}
+
+.frame__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.86) contrast(1.06) brightness(0.97);
+  transition: transform var(--dur-4) var(--ease-out);
+}
+
+.frame__grade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  background: linear-gradient(180deg, rgba(60, 46, 22, 0.06) 0%, rgba(11, 16, 14, 0.42) 100%);
+}
+
+.frame__no {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  z-index: 2;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(11, 16, 14, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #f4f6f1;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-11);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  backdrop-filter: blur(3px);
+}
+
+.frame__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 16px;
+  min-width: 0;
+  flex: 1;
+}
+
+.frame__title {
+  font-size: var(--fs-16);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink-1);
+  margin: 0;
+}
+
+.frame__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-12);
+  color: var(--ink-3);
+}
+
+.frame__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.frame__price {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-16);
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .frame--link:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+  }
+
+  .frame--link:hover .frame__media img {
+    transform: scale(1.04);
+  }
+}
+
+.frame--link:active {
+  transform: translateY(-1px);
+}
+
+/* ---------- 规格带：真实数字，发丝线分隔，不是标题+一段话 ---------- */
+
+.spec-band {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.spec {
+  padding: 22px 20px;
+  border-right: 1px solid var(--border-soft);
+  min-width: 0;
+}
+
+.spec:last-child {
+  border-right: 0;
+}
+
+.spec__num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink-1);
+  letter-spacing: -0.02em;
+}
+
+.spec__num small {
+  font-size: 0.5em;
+  font-weight: 600;
+  color: var(--ink-3);
+  margin-left: 3px;
+}
+
+.spec__label {
+  margin-top: 8px;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+@media (max-width: 640px) {
+  .spec-band {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .spec {
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .spec:nth-child(2n) {
+    border-right: 0;
+  }
+}
+
+/* ---------- 公告：印相表下方的说明条 ---------- */
+
+.bulletin {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.bulletin__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  min-width: 0;
+}
+
+.bulletin__item:last-child {
+  border-bottom: 0;
+}
+
+.bulletin__no {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-11);
+  font-weight: 700;
+  color: var(--ink-4);
+  letter-spacing: 0.12em;
+  padding-top: 3px;
+}
+
+.bulletin__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.bulletin__body strong {
+  display: block;
+  font-size: var(--fs-14);
+  font-weight: 700;
+  color: var(--ink-1);
+  margin-bottom: 3px;
+}
+
+.bulletin__body p {
+  margin: 0;
+  font-size: var(--fs-13);
+  line-height: var(--lh-body);
+  color: var(--ink-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.bulletin__date {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-11);
+  color: var(--ink-4);
+  padding-top: 3px;
+  white-space: nowrap;
+}
+
+/* ---------- 入场：首屏元素依次归位（原生滚动驱动，零 JS） ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise-in var(--dur-4) var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: rise-in linear both;
+      animation-timeline: view();
+      animation-range: entry 4% cover 30%;
+    }
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 数字滚动到位：只用 transform/opacity */
+@media (prefers-reduced-motion: no-preference) {
+  .count-up {
+    animation: count-in 700ms var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+}
+
+@keyframes count-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

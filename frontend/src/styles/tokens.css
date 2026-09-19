@@ -1,0 +1,174 @@
+/* finesse · A=sodium-amber-on-ink-green · B=800/300 + mono numerals
+ * C=perspective-court + contact-sheet · E=film contact sheet
+ * 两个平面 paper / hall 的令牌都在这一层；**动效与引擎的完整坐标戳在 brand.css**
+ * （那里才有 animation-timeline 与描边自绘，这一层只管颜色、字体、尺寸） */
+
+/* ==========================================================================
+   羽毛球馆 · 设计令牌
+   两个平面：
+     paper —— 纸面（预约流程 / 会员账户 / 后台内容区），浅色，默认
+     hall  —— 球馆（会员门面 / 登录注册），墨绿暗色，用 [data-plane="hall"] 切换
+   隐喻：球场本身就是一块带线框的矩形，一排球场就是一张接触印相表。
+   ========================================================================== */
+
+:root {
+  /* ---------- 1. 中性色阶（绿灰，向主色温度偏 2 个点，绝不纯灰） ---------- */
+  --r-50: #fbfcf9;
+  --r-100: #f5f7f2;
+  --r-150: #eef1ea;
+  --r-200: #e5e9df;
+  --r-300: #d2d8c9;
+  --r-400: #a9b2a0;
+  --r-500: #7f8a76;
+  --r-600: #5d6754;
+  --r-700: #414a3c;
+  --r-800: #2a3128;
+  --r-900: #1a2118;
+  --r-950: #0f140e;
+
+  /* ---------- 2. 平面 paper（纸面） ---------- */
+  --page: var(--r-150);
+  --sunken: var(--r-100);
+  --surface: var(--r-50);
+  --surface-2: #f7f9f4;
+  --overlay: #fdfefb;
+  --border: rgba(20, 32, 26, 0.09);
+  --border-soft: rgba(20, 32, 26, 0.055);
+  --border-strong: rgba(20, 32, 26, 0.16);
+  --ink-1: #14201a;
+  --ink-2: #3d4a43;
+  --ink-3: #5b6a62;   /* 5.5:1 on --surface */
+  --ink-4: #66756c;   /* 4.7:1 */
+
+  --accent: #a85a1e;            /* 顶灯琥珀，压深保证白字 4.5:1 */
+  --accent-hover: #8e4a15;
+  --accent-soft: rgba(168, 90, 30, 0.1);
+  --accent-line: rgba(168, 90, 30, 0.28);
+  --on-accent: #fffdf9;
+  --accent-2: #2f6b4f;          /* 场地漆绿 */
+  --accent-2-soft: rgba(47, 107, 79, 0.1);
+  --accent-l3: #c28c62;
+  --accent-l5: #d4ad8f;
+  --accent-l7: #e5cebc;
+  --accent-l8: #eeded2;
+  --accent-l9: #f6efe9;
+  --accent-d2: #864818;
+
+  --up: #2f7a55;
+  --down: #c0453c;
+  --warn: #b77a16;
+  --info: #2c6b8c;
+  --up-soft: rgba(47, 122, 85, 0.1);
+  --down-soft: rgba(192, 69, 60, 0.1);
+  --warn-soft: rgba(183, 122, 22, 0.12);
+  --info-soft: rgba(44, 107, 140, 0.1);
+
+  /* 侧栏（深色 rail，与纸面同色温） */
+  --rail: #141a16;
+  --rail-2: #1d251f;
+  --rail-ink: #9aa79c;
+  --rail-ink-active: #f4f6f1;
+  --rail-border: rgba(255, 255, 255, 0.07);
+  --rail-accent: #e8a33d;
+
+  --shadow: 0 1px 2px rgba(20, 40, 30, 0.05), 0 1px 3px rgba(20, 40, 30, 0.06);
+  --shadow-md: 0 8px 24px -10px rgba(20, 40, 30, 0.18), 0 2px 6px -2px rgba(20, 40, 30, 0.07);
+  --shadow-lg: 0 40px 90px -50px rgba(20, 40, 30, 0.38);
+  --ring: 0 0 0 3px rgba(168, 90, 30, 0.3);
+  --scrim: linear-gradient(180deg, rgba(11, 16, 14, 0.05) 0%, rgba(11, 16, 14, 0.62) 58%, rgba(11, 16, 14, 0.92) 100%);
+
+  /* ---------- 3. 排版 ---------- */
+  --font-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Hiragino Sans GB",
+    "Source Han Sans SC", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Consolas,
+    "Liberation Mono", monospace;
+
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-18: 18px;
+  --fs-22: 22px;
+  --fs-28: 28px;
+  --fs-36: 36px;
+
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
+  --lh-body: 1.7;
+  --track-display: -0.02em;
+  --track-caps: 0.1em;
+
+  /* ---------- 4. 尺寸与圆角 ---------- */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --nav-h: 68px;
+  --tap: 44px;
+
+  --z-nav: 40;
+  --z-sticky: 30;
+  --z-overlay: 2000;
+
+  /* ---------- 5. 动效 ---------- */
+  --dur-1: 120ms;
+  --dur-2: 180ms;
+  --dur-3: 280ms;
+  --dur-4: 520ms;
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.32, 0.5, 1);
+
+}
+
+/* ==========================================================================
+   平面 hall —— 球馆：墨绿底、顶灯琥珀、场地白线
+   用在会员首屏、登录注册、以及任何"走进球馆"的整块区域
+   ========================================================================== */
+[data-plane="hall"] {
+  --page: #0b100e;
+  --sunken: #0e1411;
+  --surface: #131a16;
+  --surface-2: #182220;
+  --overlay: #172019;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --ink-1: #eef1e9;
+  --ink-2: #b8bfb1;
+  --ink-3: #8d968a;
+  --ink-4: #7d877c;   /* 5.0:1 on --page */
+
+  --accent: #e8a33d;
+  --accent-hover: #f2b65c;
+  --accent-soft: rgba(232, 163, 61, 0.14);
+  --accent-line: rgba(232, 163, 61, 0.34);
+  --on-accent: #15100a;
+  --accent-2: #5fd3b2;
+  --accent-2-soft: rgba(95, 211, 178, 0.12);
+  --accent-l3: #a2722b;
+  --accent-l5: #74521f;
+  --accent-l7: #463112;
+  --accent-l8: #2e210c;
+  --accent-l9: #171006;
+  --accent-d2: #b98231;
+
+  --up: #3fcb86;
+  --down: #ff6156;
+  --warn: #e8a33d;
+  --info: #5cc0e0;
+  --up-soft: rgba(63, 203, 134, 0.12);
+  --down-soft: rgba(255, 97, 86, 0.13);
+  --warn-soft: rgba(232, 163, 61, 0.13);
+  --info-soft: rgba(92, 192, 224, 0.12);
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 12px 34px -12px rgba(0, 0, 0, 0.62);
+  --shadow-lg: 0 40px 90px -50px rgba(0, 0, 0, 0.8);
+  --ring: 0 0 0 3px rgba(232, 163, 61, 0.35);
+  --scrim: linear-gradient(180deg, rgba(11, 16, 14, 0.1) 0%, rgba(11, 16, 14, 0.68) 55%, rgba(11, 16, 14, 0.96) 100%);
+
+  color-scheme: dark;
+  color: var(--ink-1);
+  background-color: var(--page);
+}

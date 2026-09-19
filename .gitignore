@@ -41,3 +41,6 @@ mcp-servers/
 # Reference template & backups
 admin-template/
 frontend-backup/
+
+# finesse 构建记录（本地记忆，不入库）
+.finesse/

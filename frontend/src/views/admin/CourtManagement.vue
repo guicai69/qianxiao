@@ -1,51 +1,69 @@
 <template>
   <div class="page-container">
-    <el-card>
-      <template #header>
-        <div style="display:flex;align-items:center;gap:12px">
-          <el-button size="small" @click="$router.push('/admin/venues')">← 返回场馆列表</el-button>
-          <span style="font-size:16px;font-weight:bold">{{ venueName }} — 场地管理</span>
-        </div>
-      </template>
+    <header class="page-header">
+      <el-button link class="back-link" @click="$router.push('/admin/venues')">← 返回场馆列表</el-button>
+      <h2>场地管理</h2>
+      <p>{{ venueName || '当前场馆' }} · 共 {{ total }} 片场地</p>
+    </header>
 
-      <el-button type="primary" @click="openDialog()">新增场地</el-button>
-      <el-table :data="list" border stripe v-loading="loading" style="margin-top:12px">
-        <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="name" label="场地名称" min-width="150" />
-        <el-table-column label="状态" width="80">
+    <section class="surface panel">
+      <div class="page-toolbar">
+        <p class="toolbar-hint">已有预约的场地不能删除，停用后会员端不再可选</p>
+        <div class="toolbar-actions">
+          <el-button type="primary" @click="openDialog()">
+            <el-icon class="el-icon--left"><Plus /></el-icon>新增场地
+          </el-button>
+        </div>
+      </div>
+
+      <el-table :data="list" v-loading="loading">
+        <el-table-column prop="id" label="ID" width="60">
+          <template #default="{ row }"><span class="mono dim">{{ row.id }}</span></template>
+        </el-table-column>
+        <el-table-column prop="name" label="场地名称" width="240" show-overflow-tooltip />
+        <el-table-column label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
+            <el-tag :type="row.is_active ? 'success' : 'danger'" effect="light" round size="small">
               {{ row.is_active ? '启用' : '停用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="110">
-          <template #default="{ row }">{{ row.created_at?.slice(0, 10) }}</template>
+        <el-table-column prop="created_at" label="创建时间" width="112">
+          <template #default="{ row }"><span class="mono dim">{{ row.created_at?.slice(0, 10) }}</span></template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="190" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="openDialog(row)">编辑</el-button>
             <el-popconfirm title="确定删除该场地？已有预约的场地不可删除" @confirm="handleDelete(row.id)">
               <template #reference>
-                <el-button size="small" type="danger">删除</el-button>
+                <el-button size="small" type="danger" plain>删除</el-button>
               </template>
             </el-popconfirm>
           </template>
         </el-table-column>
+
+        <template #empty>
+          <div class="empty-state">
+            <strong>这座场馆还没有场地</strong>
+            <span>先新增第一片场地，会员才能选到它。</span>
+          </div>
+        </template>
       </el-table>
 
-      <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.page_size"
-        :total="total"
-        layout="total, prev, pager, next"
-        @current-change="fetchData"
-        style="margin-top:16px"
-      />
-    </el-card>
+      <div class="table-footer">
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.page_size"
+          :total="total"
+          :pager-count="5"
+          layout="total, prev, pager, next"
+          @current-change="fetchData"
+        />
+      </div>
+    </section>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑场地' : '新增场地'" width="400px">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑场地' : '新增场地'" width="min(420px, 92vw)">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
         <el-form-item label="场地名称" prop="name">
           <el-input v-model="form.name" placeholder="如：1号场" />
@@ -66,6 +84,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import { courtApi, venueApi } from '@/api/venues'
 
 const route = useRoute()
@@ -161,3 +180,66 @@ onMounted(() => {
   fetchData()
 })
 </script>
+
+<style scoped>
+.back-link {
+  margin-bottom: 10px;
+  padding: 0;
+  height: auto;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.back-link:hover {
+  color: var(--accent);
+}
+
+.panel {
+  padding: 20px;
+}
+
+.panel :deep(.page-toolbar) {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* 固定列要有不透明底色，否则横向滚动时下面的单元格会透出来 */
+.panel :deep(.el-table) {
+  --el-table-tr-bg-color: var(--surface);
+}
+
+/* 表格空态要占满整宽，不能跟着表格布局计算塌成窄条 */
+.panel :deep(.el-table__empty-block) {
+  width: 100% !important;
+}
+
+.panel :deep(.el-table__empty-text) {
+  width: 100%;
+  line-height: normal;
+}
+
+.toolbar-hint {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--fs-13);
+}
+
+.table-footer :deep(.el-pagination) {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .panel {
+    padding: 14px;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+  }
+
+  .toolbar-actions :deep(.el-button) {
+    flex: 1 1 auto;
+  }
+}
+</style>

@@ -1,82 +1,93 @@
 <template>
-  <div class="auth-shell">
-    <section class="auth-visual">
-      <div class="visual-content">
-        <span class="visual-icon"><el-icon :size="32"><Medal /></el-icon></span>
-        <h1>羽毛球馆预约</h1>
-        <p>场馆、场地与时段统一管理</p>
+  <AuthShell>
+    <h1 class="auth-title">欢迎回来</h1>
+    <p class="auth-sub">登录后查看场馆、场地与可预约时段</p>
+
+    <el-form ref="formRef" :model="form" :rules="rules" size="large" class="auth-form" @submit.prevent>
+      <el-form-item prop="phone">
+        <el-input
+          v-model="form.phone"
+          placeholder="手机号"
+          :prefix-icon="Iphone"
+          autocomplete="username"
+        />
+      </el-form-item>
+      <el-form-item prop="password">
+        <el-input
+          v-model="form.password"
+          type="password"
+          placeholder="密码"
+          :prefix-icon="Lock"
+          show-password
+          autocomplete="current-password"
+          @keyup.enter="handleLogin"
+        />
+      </el-form-item>
+
+      <el-button type="primary" class="submit-button" :loading="loading" @click="handleLogin">
+        登录
+        <el-icon class="el-icon--right"><ArrowRight /></el-icon>
+      </el-button>
+    </el-form>
+
+    <div class="auth-switch">
+      <span>还没有账号？</span>
+      <el-button link type="primary" @click="$router.push('/register')">立即注册</el-button>
+    </div>
+
+    <!-- 演示用：答辩现场点一下就把账号填好，不用背手机号 -->
+    <div class="demo-hint">
+      <div class="demo-head">
+        <span class="caps">演示账号 · 点击填充</span>
       </div>
-    </section>
-
-    <section class="auth-form-wrap">
-      <div class="auth-card">
-        <div class="auth-heading">
-          <h2>欢迎回来</h2>
-          <p>登录后继续管理场馆预约</p>
-        </div>
-
-        <el-form ref="formRef" :model="form" :rules="rules" size="large" @submit.prevent>
-          <el-form-item prop="phone">
-            <el-input
-              v-model="form.phone"
-              placeholder="手机号"
-              :prefix-icon="Iphone"
-              autocomplete="username"
-            />
-          </el-form-item>
-          <el-form-item prop="password">
-            <el-input
-              v-model="form.password"
-              type="password"
-              placeholder="密码"
-              :prefix-icon="Lock"
-              show-password
-              autocomplete="current-password"
-              @keyup.enter="handleLogin"
-            />
-          </el-form-item>
-          <el-button
-            type="primary"
-            class="submit-button"
-            :loading="loading"
-            @click="handleLogin"
-          >
-            登录
-            <el-icon class="el-icon--right"><ArrowRight /></el-icon>
-          </el-button>
-        </el-form>
-
-        <div class="auth-switch">
-          <span>还没有账号？</span>
-          <el-button link type="primary" @click="$router.push('/register')">立即注册</el-button>
-        </div>
-      </div>
-    </section>
-  </div>
+      <button
+        v-for="a in demoAccounts"
+        :key="a.phone"
+        type="button"
+        class="demo-account"
+        @click="fill(a)"
+      >
+        <span class="demo-role">{{ a.role }}</span>
+        <span class="demo-cred mono">{{ a.phone }} / {{ a.password }}</span>
+      </button>
+    </div>
+  </AuthShell>
 </template>
 
 <script setup>
-import { reactive, ref } from "vue"
-import { useRouter } from "vue-router"
-import { ElMessage } from "element-plus"
-import { Iphone, Lock, ArrowRight, Medal } from "@element-plus/icons-vue"
-import api from "@/api"
-import { useUserStore } from "@/store"
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { Iphone, Lock, ArrowRight } from '@element-plus/icons-vue'
+import api from '@/api'
+import { useUserStore } from '@/store'
+import AuthShell from '@/components/brand/AuthShell.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
 const formRef = ref(null)
 
-const form = reactive({ phone: "", password: "" })
+const form = reactive({ phone: '', password: '' })
+
+const demoAccounts = [
+  { role: '管理员', phone: '13800000000', password: 'admin123' },
+  { role: '前台', phone: '13900000001', password: '123456' },
+]
+
+function fill(a) {
+  form.phone = a.phone
+  form.password = a.password
+}
+
 const rules = {
   phone: [
-    { required: true, message: "请输入手机号", trigger: "blur" },
-    { pattern: /^1\d{10}$/, message: "手机号格式不正确", trigger: "blur" },
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1\d{10}$/, message: '手机号格式不正确', trigger: 'blur' },
   ],
   password: [
-    { required: true, message: "请输入密码", trigger: "blur" },
-    { min: 6, message: "密码至少6位", trigger: "blur" },
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码至少 6 位', trigger: 'blur' },
   ],
 }
 
@@ -86,16 +97,16 @@ async function handleLogin() {
     if (!valid) return
     loading.value = true
     try {
-      const res = await api.post("auth/login/", { phone: form.phone, password: form.password })
+      const res = await api.post('auth/login/', { phone: form.phone, password: form.password })
       const { access, refresh, user } = res.data
       userStore.setToken(access, refresh)
       userStore.setUserInfo(user)
-      ElMessage.success("登录成功")
-      if (user.role === "admin") router.push("/admin/dashboard")
-      else if (user.role === "reception") router.push("/reception/dashboard")
-      else router.push("/")
+      ElMessage.success('登录成功')
+      if (user.role === 'admin') router.push('/admin/dashboard')
+      else if (user.role === 'reception') router.push('/reception/dashboard')
+      else router.push('/')
     } catch {
-      // error handled by interceptor
+      // 错误已由拦截器统一提示
     } finally {
       loading.value = false
     }
@@ -104,119 +115,81 @@ async function handleLogin() {
 </script>
 
 <style scoped>
-.auth-shell {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(420px, 560px);
-  background: var(--mui-surface);
-}
-
-.auth-visual {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px;
-  color: #ffffff;
-  background:
-    linear-gradient(rgba(15, 23, 42, 0.1), rgba(15, 23, 42, 0.12)),
-    repeating-linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.05) 0,
-      rgba(255, 255, 255, 0.05) 1px,
-      transparent 1px,
-      transparent 18px
-    ),
-    #0f172a;
-  overflow: hidden;
-}
-
-.visual-content {
-  position: relative;
-  z-index: 1;
-  max-width: 460px;
-}
-
-.visual-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 18px;
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
-}
-
-.visual-content h1 {
-  margin: 0 0 12px;
-  font-size: 38px;
-  font-weight: 800;
-  letter-spacing: 0;
-}
-
-.visual-content p {
-  margin: 0;
-  color: #cbd5e1;
-  font-size: 16px;
-}
-
-.auth-form-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 32px;
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 400px;
-}
-
-.auth-heading {
-  margin-bottom: 32px;
-}
-
-.auth-heading h2 {
+.auth-title {
   margin: 0 0 8px;
-  color: var(--mui-text);
-  font-size: 30px;
+  font-size: var(--fs-28);
   font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink-1);
 }
 
-.auth-heading p {
-  margin: 0;
-  color: var(--mui-muted);
-  font-size: 14px;
+.auth-sub {
+  margin: 0 0 28px;
+  font-size: var(--fs-13);
+  line-height: var(--lh-body);
+  color: var(--ink-3);
+}
+
+.auth-form :deep(.el-form-item) {
+  margin-bottom: 18px;
 }
 
 .submit-button {
   width: 100%;
   height: 46px;
-  margin-top: 8px;
-  font-size: 15px;
+  margin-top: 4px;
+  font-size: var(--fs-14);
 }
 
 .auth-switch {
   display: flex;
   align-items: center;
+  gap: 4px;
   justify-content: center;
-  gap: 6px;
-  margin-top: 24px;
-  color: var(--mui-muted);
-  font-size: 14px;
+  margin-top: 18px;
+  font-size: var(--fs-13);
+  color: var(--ink-3);
 }
 
-@media (max-width: 900px) {
-  .auth-shell {
-    grid-template-columns: 1fr;
-  }
+.demo-hint {
+  margin-top: 30px;
+  padding: 14px 16px 8px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
 
-  .auth-visual {
-    display: none;
-  }
+.demo-head {
+  margin-bottom: 8px;
+}
+
+.demo-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 6px;
+  border: 0;
+  border-top: 1px solid var(--border-soft);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--dur-2) var(--ease-out);
+}
+
+.demo-account:hover {
+  background: var(--accent-soft);
+}
+
+.demo-role {
+  font-size: var(--fs-13);
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
+.demo-cred {
+  font-size: var(--fs-12);
+  color: var(--ink-3);
 }
 </style>

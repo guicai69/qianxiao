@@ -3,7 +3,7 @@ from datetime import date
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Count
 
 from .models import Venue, Court, TimeSlot
@@ -40,9 +40,27 @@ class VenueViewSet(viewsets.ModelViewSet):
         return VenueDetailSerializer
 
     def get_permissions(self):
+        # 注意：本类的 get_permissions() 会覆盖 @action(permission_classes=...)，
+        # 新开的动作必须在这里登记，否则会掉进最后那条 IsAdminOrReception
+        if self.action == 'public':
+            return [AllowAny()]
         if self.action in ('list', 'retrieve', 'availability'):
             return [IsAuthenticated()]
         return [IsAdminOrReception()]
+
+    @action(detail=False, methods=['get'], authentication_classes=[])
+    def public(self, request):
+        """游客可见的场馆清单（给未登录的首页用）。
+
+        只读，只返回场馆基础信息，不含场地、时段与价格明细。
+        单独开一个动作而不是放宽 list/retrieve 的权限，是为了保住
+        "登录后才能查可预约时段"这条边界。权限在 get_permissions() 里登记。
+        """
+        qs = Venue.objects.filter(is_active=True).order_by('id')
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            return self.get_paginated_response(VenueListSerializer(page, many=True).data)
+        return Response(VenueListSerializer(qs, many=True).data)
 
     @action(detail=True, methods=['get'])
     def availability(self, request, pk=None):

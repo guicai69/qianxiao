@@ -1,0 +1,88 @@
+# design-model.yaml — 从真实代码里抽出来的设计系统
+# 只记录"已经实现"的东西，不是规划。真源永远是 src/styles/tokens.css。
+version: 1
+project: 羽毛球馆预约管理系统
+branch: ui/finesse
+updated: 2026-09-19
+
+registers:
+  brand:
+    pages: [views/member/Home.vue, views/Login.vue, views/Register.vue, views/NotFound.vue]
+    plane: hall
+    dials: { soul: 8, spectacle: 7, density: 4 }
+    substrate: [grain, scrim, vignette, display-clamp-type]
+  commerce:
+    pages: [views/member/VenueList.vue, views/member/VenueDetail.vue, views/member/MemberOrders.vue]
+    plane: paper
+    dials: { soul: 6, spectacle: 3, density: 7 }
+  product:
+    pages: [layouts/AdminLayout.vue, views/admin/*, views/reception/Dashboard.vue]
+    plane: paper + dark rail
+    dials: { soul: 5, spectacle: 2, density: 8 }
+    forbidden: [grain, vignette, display-clamp-type, dark-default, hero-engine]
+
+planes:
+  paper:
+    page: "#eef1ea"
+    surface: "#fbfcf9"
+    surface2: "#f7f9f4"
+    sunken: "#f5f7f2"
+    border: "rgba(20,32,26,.09)"
+    borderSoft: "rgba(20,32,26,.055)"
+    ink: ["#14201a", "#3d4a43", "#6e7d74", "#97a39b"]
+    accent: "#a85a1e"
+    accentSoft: "rgba(168,90,30,.10)"
+    onAccent: "#fffdf9"
+    accent2: "#2f6b4f"
+    semantic: { up: "#2f7a55", down: "#c0453c", warn: "#b77a16", info: "#2c6b8c" }
+    shadow: "0 1px 2px rgba(20,40,30,.05), 0 1px 3px rgba(20,40,30,.06)"
+  hall:
+    page: "#0b100e"
+    surface: "#131a16"
+    ink: ["#eef1e9", "#b8bfb1", "#8d968a", "#6b7469"]
+    accent: "#e8a33d"
+    onAccent: "#15100a"
+    accent2: "#5fd3b2"
+    semantic: { up: "#3fcb86", down: "#ff6156", warn: "#e8a33d", info: "#5cc0e0" }
+    rail: { base: "#141a16", hover: "#1d251f", ink: "#9aa79c", inkActive: "#f4f6f1" }
+
+tokens:
+  radius: { sm: 8, base: 12, lg: 16, xl: 22 }
+  motion: { d1: 120ms, d2: 180ms, d3: 280ms, d4: 520ms, easeOut: "cubic-bezier(.22,.61,.36,1)" }
+  z: { nav: 40, sticky: 30, overlay: 2000 }
+  tap: 44
+  fonts:
+    sans: '"PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif'
+    mono: 'ui-monospace, "SF Mono", "JetBrains Mono", Consolas, monospace'
+  webfonts: none
+
+motion:
+  budget: { heavy: 1, beats: 4, perFamilyOnce: true }
+  beats:
+    - { slot: hero, family: spatial, route: R6+R2, what: 从底线望过去的球场，白线自绘，滚动推进镜头 }
+    - { slot: scroll, family: image-transform, route: R2, what: 印相表格子滚到跟前逐格显影 }
+    - { slot: interaction, family: state-transition, route: R1+R3, what: 格子抬起、筛选重排 }
+    - { slot: close, family: typographic, route: R1, what: 公告条与收尾文字浮起 }
+  reducedMotion: 停在构图最好的一帧，线已画完，全部静止
+  engineDeps: []
+
+imagery:
+  dir: frontend/public/img
+  count: 8
+  source: Pexels (Ben Cheers indoor badminton series)
+  license: Pexels License（免费商用、免署名）
+  local: true
+  grade: "saturate(.86) contrast(1.06) brightness(.97) + 墨绿 multiply 叠层"
+  honesty: 示意照片，不是这五座球馆的真实照片；alt 不写具体场馆名
+
+a11y:
+  contrast: "正文 >= 4.5:1，按钮白字对琥珀 #a85a1e >= 4.5:1"
+  focusVisible: true
+  tapTarget: 44
+  reducedMotionTerminalState: true
+  overflowX: clip
+
+charts:
+  themeFile: src/utils/chartTheme.js
+  palette: [accent, accent2, info, warn, ink3]
+  animation: "关闭当 prefers-reduced-motion"

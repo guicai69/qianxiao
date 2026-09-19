@@ -1,61 +1,102 @@
 <template>
   <div class="profile-page">
-    <div class="page-header">
+    <header class="page-header">
       <h2>个人中心</h2>
-      <p>账号资料、密码与余额管理</p>
-    </div>
+      <p>账号资料、会员等级与余额充值</p>
+    </header>
 
     <div class="profile-grid">
-      <el-card shadow="never" class="profile-summary">
-        <div class="profile-hero">
+      <!-- 左栏：身份 → 余额 → 等级，一条竖着读的信息流 -->
+      <section class="surface profile-card">
+        <div class="identity">
           <span class="avatar">{{ initial }}</span>
-          <div class="profile-copy">
+          <div class="identity-copy">
             <strong>{{ userInfo.nickname || userInfo.phone }}</strong>
             <span>{{ roleLabel(userInfo.role) }}</span>
           </div>
         </div>
 
-        <div class="balance-panel">
-          <span>当前余额</span>
-          <strong>¥{{ userInfo.balance }}</strong>
-          <el-button type="primary" round @click="rechargeDialog = true">
+        <div class="balance">
+          <span class="field-label">账户余额</span>
+          <strong class="balance-value mono">¥{{ money(userInfo.balance) }}</strong>
+          <p class="balance-note">余额可直接支付场地费用，充值满档另有赠送</p>
+          <el-button type="primary" class="balance-cta" @click="rechargeDialog = true">
             <el-icon class="el-icon--left"><Wallet /></el-icon>余额充值
           </el-button>
         </div>
 
-        <div v-if="userInfo.role === 'member'" class="growth-panel">
-          <div class="growth-head">
-            <span>会员成长</span>
+        <div v-if="userInfo.role === 'member'" class="tiers">
+          <div class="tiers-head">
+            <span class="field-label">会员等级</span>
             <strong>{{ levelLabel(userInfo.level) }}</strong>
           </div>
-          <el-progress
-            :percentage="levelProgress.percent"
-            :stroke-width="10"
-            :show-text="false"
-            color="#1976d2"
-          />
-          <span class="growth-hint">{{ levelProgress.text }}</span>
+
+          <ol class="rail">
+            <li
+              v-for="t in tiers"
+              :key="t.key"
+              :class="{ 'is-passed': t.passed, 'is-current': t.current }"
+            >
+              <span class="rail-dot" aria-hidden="true"></span>
+              <span class="rail-name">{{ t.name }}</span>
+              <span class="rail-rate mono">{{ t.rate }}</span>
+            </li>
+          </ol>
+
+          <p class="tiers-hint">
+            <template v-if="nextTier">
+              累计消费 <b class="mono">¥{{ money(spend) }}</b><br />
+              再消费 <b class="mono">¥{{ money(nextTier.need) }}</b> 升级{{ nextTier.name }}
+            </template>
+            <template v-else>
+              累计消费 <b class="mono">¥{{ money(spend) }}</b><br />
+              已是最高等级，场地费用按 {{ discountText(userInfo.level) }} 结算
+            </template>
+          </p>
         </div>
-      </el-card>
+      </section>
 
-      <el-card shadow="never" class="profile-detail">
-        <template #header>
-          <span class="detail-title">账号资料</span>
-        </template>
+      <!-- 右栏：资料，用发丝线分行，不做成一格一格的卡片 -->
+      <section class="surface profile-detail">
+        <header class="panel-head">
+          <h3>账号资料</h3>
+          <span class="panel-note">手机号即登录账号</span>
+        </header>
 
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="手机号">{{ userInfo.phone }}</el-descriptions-item>
-          <el-descriptions-item label="昵称">{{ userInfo.nickname || "未设置" }}</el-descriptions-item>
-          <el-descriptions-item label="角色">
-            <el-tag :type="roleTag(userInfo.role)" effect="light" round size="small">
-              {{ roleLabel(userInfo.role) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="会员等级">{{ levelLabel(userInfo.level) }}</el-descriptions-item>
-          <el-descriptions-item v-if="userInfo.role === 'member'" label="会员折扣">{{ discountText(userInfo.level) }}</el-descriptions-item>
-          <el-descriptions-item label="余额">¥{{ userInfo.balance }}</el-descriptions-item>
-          <el-descriptions-item label="注册时间">{{ userInfo.date_joined?.slice(0, 10) }}</el-descriptions-item>
-        </el-descriptions>
+        <dl class="facts">
+          <div class="fact">
+            <dt>手机号</dt>
+            <dd class="mono">{{ userInfo.phone }}</dd>
+          </div>
+          <div class="fact">
+            <dt>昵称</dt>
+            <dd>{{ userInfo.nickname || '未设置' }}</dd>
+          </div>
+          <div class="fact">
+            <dt>角色</dt>
+            <dd>
+              <el-tag :type="roleTag(userInfo.role)" effect="light" round size="small">
+                {{ roleLabel(userInfo.role) }}
+              </el-tag>
+            </dd>
+          </div>
+          <div class="fact">
+            <dt>会员等级</dt>
+            <dd>{{ levelLabel(userInfo.level) }}</dd>
+          </div>
+          <div v-if="userInfo.role === 'member'" class="fact">
+            <dt>会员折扣</dt>
+            <dd>{{ discountText(userInfo.level) }}</dd>
+          </div>
+          <div class="fact">
+            <dt>账户余额</dt>
+            <dd class="mono accent">¥{{ money(userInfo.balance) }}</dd>
+          </div>
+          <div class="fact">
+            <dt>注册时间</dt>
+            <dd class="mono">{{ joinedAt }}</dd>
+          </div>
+        </dl>
 
         <div class="profile-actions">
           <el-button @click="editDialog = true">
@@ -68,10 +109,10 @@
             <el-icon class="el-icon--left"><Wallet /></el-icon>余额充值
           </el-button>
         </div>
-      </el-card>
+      </section>
     </div>
 
-    <el-dialog v-model="editDialog" title="修改昵称" width="400px">
+    <el-dialog v-model="editDialog" title="修改昵称" width="400px" class="narrow-dialog">
       <el-form :model="editForm">
         <el-form-item label="昵称">
           <el-input v-model="editForm.nickname" placeholder="请输入昵称" />
@@ -83,7 +124,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="pwdDialog" title="修改密码" width="420px">
+    <el-dialog v-model="pwdDialog" title="修改密码" width="420px" class="narrow-dialog">
       <el-form ref="pwdRef" :model="pwdForm" :rules="pwdRules" label-width="90px">
         <el-form-item label="旧密码" prop="old_password">
           <el-input v-model="pwdForm.old_password" type="password" show-password />
@@ -101,8 +142,23 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="rechargeDialog" title="余额充值" width="380px">
-      <el-form :model="rechargeForm" label-width="80px">
+    <el-dialog v-model="rechargeDialog" title="余额充值" width="440px" class="narrow-dialog">
+      <div class="tier-picker">
+        <button
+          v-for="t in rechargeTiers"
+          :key="t.amount"
+          type="button"
+          class="tier-card"
+          :class="{ 'is-active': Number(rechargeForm.amount) === t.amount }"
+          :aria-pressed="Number(rechargeForm.amount) === t.amount"
+          @click="rechargeForm.amount = t.amount"
+        >
+          <span class="tier-card__amount mono">¥{{ t.amount }}</span>
+          <span class="tier-card__bonus">{{ t.bonus ? `送 ¥${t.bonus}` : '无赠送' }}</span>
+        </button>
+      </div>
+
+      <el-form :model="rechargeForm" label-width="80px" class="recharge-form">
         <el-form-item label="充值金额">
           <el-input-number v-model="rechargeForm.amount" :min="1" :step="50" style="width: 210px" />
         </el-form-item>
@@ -113,10 +169,15 @@
           </el-radio-group>
         </el-form-item>
       </el-form>
-      <div class="recharge-bonus">
-        <span>充值赠送</span>
-        <strong>¥{{ rechargeBonus }}，到账 ¥{{ rechargeBonus + rechargeForm.amount }}</strong>
+
+      <div class="receipt">
+        <span class="receipt__label">实付</span>
+        <strong class="receipt__pay mono">¥{{ money(rechargeForm.amount) }}</strong>
+        <span class="receipt__arrow" aria-hidden="true">→</span>
+        <span class="receipt__label">到账</span>
+        <strong class="receipt__get mono">¥{{ money(rechargeCredit) }}</strong>
       </div>
+
       <template #footer>
         <el-button @click="rechargeDialog = false">取消</el-button>
         <el-button type="primary" :loading="recharging" @click="handleRecharge">确认充值</el-button>
@@ -131,7 +192,7 @@ import { ElMessage } from "element-plus"
 import { User, Lock, Wallet } from "@element-plus/icons-vue"
 import api from "@/api"
 import { paymentApi } from "@/api/payments"
-import { getRechargeBonus } from "@/utils/recharge"
+import { getRechargeBonus, RECHARGE_BONUS_TIERS } from "@/utils/recharge"
 import { useUserStore } from "@/store"
 
 const userStore = useUserStore()
@@ -169,19 +230,40 @@ const levelLabel = (l) => ({ normal: "普通会员", silver: "银卡会员", gol
 const discountText = (l) =>
   ({ normal: "原价", silver: "95折", gold: "90折" }[l] || "原价")
 
-const rechargeBonus = computed(() => getRechargeBonus(rechargeForm.amount))
+const money = (v) => Number(v || 0).toFixed(2)
+const joinedAt = computed(() => userInfo.date_joined?.slice(0, 10) || "未记录")
 
-const levelProgress = computed(() => {
-  const total = Number(userInfo.total_spend || 0)
-  if (userInfo.level === "gold") {
-    return { percent: 100, text: "已达最高等级 · 金卡会员" }
-  }
-  if (userInfo.level === "silver") {
-    const percent = Math.min(100, Math.round((total / 2000) * 100))
-    return { percent, text: `再消费 ¥${Math.max(0, 2000 - total)} 升级金卡会员` }
-  }
-  const percent = Math.min(100, Math.round((total / 500) * 100))
-  return { percent, text: `再消费 ¥${Math.max(0, 500 - total)} 升级银卡会员` }
+const rechargeTiers = RECHARGE_BONUS_TIERS
+const rechargeBonus = computed(() => getRechargeBonus(rechargeForm.amount))
+const rechargeCredit = computed(() => Number(rechargeForm.amount || 0) + rechargeBonus.value)
+
+// 等级阶梯：阈值与折扣跟后端一致，只做展示。
+// 用「已走过 / 当前」的节点表达进度，不编百分比。
+const LEVEL_TIERS = [
+  { key: "normal", name: "普通会员", rate: "原价", at: 0 },
+  { key: "silver", name: "银卡会员", rate: "95折", at: 500 },
+  { key: "gold", name: "金卡会员", rate: "90折", at: 2000 },
+]
+
+const spend = computed(() => Number(userInfo.total_spend || 0))
+
+const currentTierIndex = computed(() => {
+  const i = LEVEL_TIERS.findIndex((t) => t.key === userInfo.level)
+  return i < 0 ? 0 : i
+})
+
+const tiers = computed(() =>
+  LEVEL_TIERS.map((t, i) => ({
+    ...t,
+    passed: i <= currentTierIndex.value,
+    current: i === currentTierIndex.value,
+  }))
+)
+
+const nextTier = computed(() => {
+  const next = LEVEL_TIERS[currentTierIndex.value + 1]
+  if (!next) return null
+  return { ...next, need: Math.max(0, next.at - spend.value) }
 })
 
 async function saveNickname() {
@@ -240,155 +322,409 @@ async function handleRecharge() {
 <style scoped>
 .profile-page {
   width: 100%;
-  max-width: 960px;
+  max-width: 1040px;
   margin: 0 auto;
+  padding: 28px 24px 72px;
 }
 
 .profile-grid {
   display: grid;
-  grid-template-columns: 340px minmax(0, 1fr);
+  grid-template-columns: 320px minmax(0, 1fr);
   gap: 16px;
+  align-items: start;
 }
 
-.profile-summary {
-  height: fit-content;
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
 }
 
-.profile-summary :deep(.el-card__body) {
-  padding: 24px;
-}
+/* ---------- 身份 ---------- */
 
-.profile-hero {
+.identity {
   display: flex;
   align-items: center;
   gap: 14px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  color: #ffffff;
-  background: var(--mui-primary);
-  font-size: 22px;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: var(--radius);
+  color: var(--on-accent);
+  background: var(--accent);
+  font-size: var(--fs-18);
   font-weight: 800;
 }
 
-.profile-copy {
+.identity-copy {
   display: flex;
   flex-direction: column;
+  gap: 3px;
   min-width: 0;
 }
 
-.profile-copy strong {
-  color: var(--mui-text);
-  font-size: 17px;
+.identity-copy strong {
+  font-size: var(--fs-16);
   font-weight: 800;
+  color: var(--ink-1);
+  overflow-wrap: anywhere;
 }
 
-.profile-copy span {
-  margin-top: 4px;
-  color: var(--mui-muted);
-  font-size: 13px;
+.identity-copy span {
+  font-size: var(--fs-12);
+  color: var(--ink-3);
 }
 
-.balance-panel {
+/* ---------- 余额 ---------- */
+
+.field-label {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.balance {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  margin-top: 24px;
-  padding: 18px;
-  border: 1px solid #dbeafe;
-  border-radius: 14px;
-  background: #f8fbff;
+  gap: 6px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border-soft);
 }
 
-.balance-panel span {
-  color: var(--mui-muted);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.balance-panel strong {
-  color: var(--mui-primary);
-  font-size: 30px;
+.balance-value {
+  font-size: var(--fs-36);
   font-weight: 800;
+  line-height: 1.1;
+  color: var(--ink-1);
 }
 
-.balance-panel .el-button {
+.balance-note {
+  margin: 0;
+  font-size: var(--fs-12);
+  line-height: var(--lh-body);
+  color: var(--ink-3);
+}
+
+.balance-cta {
+  width: 100%;
+  height: 40px;
   margin-top: 8px;
 }
 
-.growth-panel {
+/* ---------- 等级：一条走过的阶梯 ---------- */
+
+.tiers {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 16px;
-  padding: 16px 18px;
-  border: 1px solid var(--mui-border);
-  border-radius: 14px;
-  background: #ffffff;
+  gap: 12px;
+  padding-top: 18px;
 }
 
-.growth-head {
+.tiers-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
+  gap: 10px;
 }
 
-.growth-head span {
-  color: var(--mui-muted);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.growth-head strong {
-  color: var(--mui-primary);
-  font-size: 13px;
+.tiers-head strong {
+  font-size: var(--fs-13);
   font-weight: 800;
+  color: var(--accent);
 }
 
-.growth-hint {
-  color: var(--mui-muted);
-  font-size: 12px;
+.rail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.recharge-bonus {
+.rail li {
+  position: relative;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 22px;
+  min-width: 0;
+}
+
+.rail li::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border);
+}
+
+.rail li:first-child::before {
+  left: 6px;
+  border-radius: 2px 0 0 2px;
+}
+
+.rail li:last-child::before {
+  right: 6px;
+  border-radius: 0 2px 2px 0;
+}
+
+.rail-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+}
+
+.rail li.is-passed::before {
+  background: var(--accent);
+}
+
+.rail li.is-passed .rail-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.rail li.is-current .rail-dot {
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.rail-name {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.rail li.is-passed .rail-name {
+  color: var(--ink-1);
+}
+
+.rail-rate {
+  font-size: var(--fs-11);
+  color: var(--ink-4);
+}
+
+.tiers-hint {
+  margin: 0;
+  font-size: var(--fs-12);
+  line-height: var(--lh-body);
+  color: var(--ink-3);
+}
+
+.tiers-hint b {
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
+/* ---------- 资料 ---------- */
+
+.profile-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 6px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  color: var(--mui-muted);
-  background: #f8fafc;
-  font-size: 13px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-soft);
 }
 
-.recharge-bonus strong {
-  color: var(--mui-primary);
-  font-weight: 800;
+.panel-head h3 {
+  margin: 0;
+  font-size: var(--fs-14);
+  font-weight: 700;
+  color: var(--ink-1);
 }
 
-.detail-title {
+.panel-note {
+  font-size: var(--fs-12);
+  color: var(--ink-4);
+}
+
+.facts {
+  margin: 0;
+  padding: 4px 20px;
+}
+
+.fact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 46px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.fact:last-child {
+  border-bottom: 0;
+}
+
+.fact dt {
+  flex: 0 0 auto;
+  font-size: var(--fs-13);
+  color: var(--ink-3);
+}
+
+.fact dd {
+  margin: 0;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--ink-1);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.fact dd.accent {
+  color: var(--accent);
   font-weight: 700;
 }
 
 .profile-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 20px;
+  gap: 10px;
+  margin-top: auto;
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--border-soft);
 }
 
-@media (max-width: 800px) {
+.profile-actions :deep(.el-button) {
+  min-height: 40px;
+}
+
+/* ---------- 充值弹窗 ---------- */
+
+.tier-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tier-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+
+.tier-card:hover {
+  border-color: var(--border-strong);
+}
+
+.tier-card.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.tier-card__amount {
+  font-size: var(--fs-18);
+  font-weight: 800;
+  color: var(--ink-1);
+}
+
+.tier-card.is-active .tier-card__amount {
+  color: var(--accent);
+}
+
+.tier-card__bonus {
+  font-size: var(--fs-12);
+  color: var(--ink-3);
+}
+
+.recharge-form {
+  margin-top: 18px;
+}
+
+.receipt {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding: 12px 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  font-size: var(--fs-13);
+}
+
+.receipt__label {
+  color: var(--ink-3);
+}
+
+.receipt__pay {
+  font-size: var(--fs-16);
+  font-weight: 800;
+  color: var(--ink-1);
+}
+
+.receipt__arrow {
+  color: var(--ink-4);
+}
+
+.receipt__get {
+  font-size: var(--fs-16);
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.receipt__note {
+  font-size: var(--fs-11);
+  color: var(--ink-4);
+}
+
+/* ---------- 断点 ---------- */
+
+@media (max-width: 860px) {
   .profile-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
+}
+
+@media (max-width: 640px) {
+  .profile-page {
+    padding: 20px 16px 56px;
+  }
+
+  .balance-value {
+    font-size: var(--fs-28);
+  }
+
+  .profile-actions :deep(.el-button) {
+    flex: 1 1 100%;
+    min-height: 44px;
+  }
+}
+</style>
+
+<style>
+/* 弹窗挂在 body 上，作用域样式够不到；窄屏下不许横向溢出 */
+.el-dialog.narrow-dialog {
+  max-width: calc(100vw - 32px);
 }
 </style>
