@@ -51,6 +51,14 @@ class VenueUpdateSerializer(serializers.ModelSerializer):
         model = Venue
         fields = ['name', 'address', 'phone', 'description', 'is_active']
 
+    def validate_name(self, value):
+        qs = Venue.objects.filter(name=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError('该场馆名称已存在')
+        return value
+
 
 # ──────────────────────────────────────────────
 # Court Serializers
@@ -160,6 +168,9 @@ class TimeSlotUpdateSerializer(serializers.ModelSerializer):
         fields = ['start_time', 'end_time', 'price', 'is_active']
 
     def validate(self, attrs):
-        if attrs.get('start_time') and attrs.get('end_time') and attrs['start_time'] >= attrs['end_time']:
+        # 部分更新时用实例上的旧值补齐，避免只改 start/end 一端绕过校验
+        start = attrs.get('start_time', getattr(self.instance, 'start_time', None))
+        end = attrs.get('end_time', getattr(self.instance, 'end_time', None))
+        if start and end and start >= end:
             raise serializers.ValidationError('结束时间必须大于开始时间')
         return attrs

@@ -1,12 +1,18 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from django.core.validators import RegexValidator
 from .models import User
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    phone = serializers.CharField(
+        max_length=11,
+        validators=[RegexValidator(r'^1\d{10}$', '请输入正确的手机号')],
+    )
     password = serializers.CharField(
         write_only=True, min_length=6,
+        validators=[validate_password],
         label='密码',
     )
     password2 = serializers.CharField(write_only=True, label='确认密码')

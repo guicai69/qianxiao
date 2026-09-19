@@ -4,7 +4,13 @@ import { ref, computed } from 'vue'
 export const useUserStore = defineStore('user', () => {
   const token = ref(sessionStorage.getItem('access_token') || '')
   const refreshToken = ref(sessionStorage.getItem('refresh_token') || '')
-  const userInfo = ref(JSON.parse(sessionStorage.getItem('user_info') || 'null'))
+  let storedInfo = null
+  try {
+    storedInfo = JSON.parse(sessionStorage.getItem('user_info') || 'null')
+  } catch {
+    storedInfo = null
+  }
+  const userInfo = ref(storedInfo)
 
   const isLoggedIn = computed(() => !!token.value)
   const role = computed(() => userInfo.value?.role || '')

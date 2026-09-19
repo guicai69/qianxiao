@@ -108,14 +108,19 @@ class BookingViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     @transaction.atomic
     def cancel(self, request, pk=None):
-        booking = self.get_object()
+        # get_object() 只做归属校验（会员只能取消自己的订单）
+        booking_id = self.get_object().pk
+        is_staff = request.user.role in ('admin', 'reception')
+
+        # 行锁内重读后再做状态判断与退款计算，防止并发取消双退款
+        booking = Booking.objects.select_for_update().select_related('user').get(pk=booking_id)
         if booking.status == 'cancelled':
             return Response({'detail': '该订单已取消'}, status=400)
         if booking.status not in ['pending', 'paid']:
             return Response({'detail': '该订单状态不可取消'}, status=400)
 
-        is_staff = request.user.role in ('admin', 'reception')
         was_paid = booking.status == 'paid'
+        user = booking.user
         refund_amount = Decimal('0')
         fee_amount = Decimal('0')
 
@@ -139,9 +144,6 @@ class BookingViewSet(viewsets.ModelViewSet):
                     return Response({'detail': '距开场不足 2 小时，需联系管理员或前台取消'}, status=403)
                 fee_amount = (booking.amount * CANCEL_FEE_RATE).quantize(Decimal('0.01'))
                 refund_amount = booking.amount - fee_amount
-
-        booking = Booking.objects.select_for_update().select_related('user').get(pk=booking.pk)
-        user = booking.user
         data = {}
         if refund_amount > 0:
             User.objects.filter(pk=user.pk).update(balance=F('balance') + refund_amount)

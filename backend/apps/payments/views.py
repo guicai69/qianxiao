@@ -16,6 +16,7 @@ from .serializers import (
     RechargeSerializer, PayBookingSerializer,
 )
 from apps.users.permissions import IsAdminOrReception
+from apps.users.models import User
 from apps.bookings.models import Booking
 from apps.bookings.utils import PENDING_TIMEOUT_MINUTES
 
@@ -70,7 +71,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
         amount = serializer.validated_data['amount']
         method = serializer.validated_data['method']
-        user = request.user
+        # 锁用户行再改余额，防止并发充值/支付丢失更新
+        user = User.objects.select_for_update().get(pk=request.user.pk)
 
         bonus = get_recharge_bonus(amount)
         user.balance += amount + bonus
@@ -124,6 +126,9 @@ class PaymentViewSet(viewsets.ModelViewSet):
             time_slot_id=booking.time_slot_id, status='paid',
         ).exclude(pk=booking.pk).exists():
             return Response({'code': 400, 'message': '该时段已被预约'}, status=400)
+
+        # 锁用户行再读余额，防止两笔订单并发支付同时通过余额检查
+        user = User.objects.select_for_update().get(pk=user.pk)
 
         if method == 'balance':
             if user.balance < booking.amount:

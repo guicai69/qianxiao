@@ -30,3 +30,13 @@ class AvailabilityTests(APITestCase):
         r = self.client.get(f'/api/venues/{venue.id}/availability/', {'date': tomorrow.isoformat()})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['occupied'], [{'court_id': court.id, 'time_slot_id': slot.id}])
+
+    def test_partial_update_cannot_break_time_order(self):
+        admin = make_user('13800000000', role='admin')
+        venue = Venue.objects.create(name='测试场馆')
+        slot = TimeSlot.objects.create(venue=venue, start_time='10:00', end_time='11:00', price='100.00')
+        self.client.force_authenticate(user=admin)
+        r = self.client.patch(f'/api/time-slots/{slot.id}/', {'start_time': '11:30'})
+        self.assertEqual(r.status_code, 400)
+        slot.refresh_from_db()
+        self.assertEqual(slot.start_time.strftime('%H:%M'), '10:00')

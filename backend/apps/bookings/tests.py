@@ -70,6 +70,19 @@ class CancelPolicyTests(APITestCase):
         self.assertEqual(str(b.fee_amount), '0.00')
         self.assertTrue(Payment.objects.filter(type='refund', amount='100.00').exists())
 
+    def test_double_cancel_refunds_once(self):
+        member = make_user('13800000001', balance='0')
+        d = timezone.localdate() + timedelta(days=3)
+        b = self._paid_booking(member, d, '14:00', amount='100.00')
+        self.client.force_authenticate(user=member)
+        fixed = datetime.combine(timezone.localdate(), datetime.min.time(), tzinfo=TZ)
+        with mock.patch('django.utils.timezone.now', return_value=fixed):
+            self.assertEqual(self.client.post(f'/api/bookings/{b.id}/cancel/').status_code, 200)
+            self.assertEqual(self.client.post(f'/api/bookings/{b.id}/cancel/').status_code, 400)
+        member.refresh_from_db()
+        self.assertEqual(str(member.balance), '100.00')
+        self.assertEqual(Payment.objects.filter(type='refund').count(), 1)
+
     def test_member_blocked_in_fee_window(self):
         member = make_user('13800000001', balance='0')
         b = self._paid_booking(member, datetime(2025, 1, 15).date(), '11:30', amount='100.00')

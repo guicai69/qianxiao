@@ -41,7 +41,10 @@ class StatsViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["get"])
     def revenue_trend(self, request):
-        days = int(request.query_params.get("days", 7))
+        try:
+            days = int(request.query_params.get("days", 7))
+        except (TypeError, ValueError):
+            return Response({"detail": "days 参数必须是数字"}, status=400)
         since = timezone.localdate() - timedelta(days=days - 1)
         qs = (
             Booking.objects.filter(status="paid", date__gte=since)
