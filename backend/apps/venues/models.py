@@ -1,9 +1,9 @@
-﻿# venues models
+# venues models
 from django.db import models
 
 
 class BaseModel(models.Model):
-    """项目公共基类 — 所有 Model 必须继承"""
+    """venues 应用模型公共基类（时间戳）。"""
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
@@ -78,6 +78,10 @@ class TimeSlot(BaseModel):
             models.UniqueConstraint(
                 fields=['venue', 'start_time', 'end_time'],
                 name='uq_venue_slot_time',
+            ),
+            models.CheckConstraint(
+                check=models.Q(price__gte=0),
+                name='ck_timeslot_price_nonneg',
             ),
         ]
 

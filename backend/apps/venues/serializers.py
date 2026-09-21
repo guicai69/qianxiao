@@ -15,7 +15,17 @@ class VenueListSerializer(serializers.ModelSerializer):
                   'court_count', 'created_at', 'updated_at']
 
     def get_court_count(self, obj):
+        # 列表视图用 annotate 一次性取数，避免逐条 count() 打库（N+1）
+        if hasattr(obj, 'court_count'):
+            return obj.court_count
         return obj.courts.count()
+
+
+class VenuePublicSerializer(VenueListSerializer):
+    """游客接口专用：不暴露联系电话。"""
+
+    class Meta(VenueListSerializer.Meta):
+        fields = ['id', 'name', 'address', 'is_active', 'court_count', 'created_at', 'updated_at']
 
 
 class VenueDetailSerializer(serializers.ModelSerializer):
@@ -90,24 +100,30 @@ class CourtCreateSerializer(serializers.ModelSerializer):
         model = Court
         fields = ['id', 'venue', 'name', 'is_active']
 
+    def validate(self, attrs):
+        if Court.objects.filter(venue=attrs['venue'], name=attrs['name']).exists():
+            raise serializers.ValidationError('该场馆下已存在同名场地')
+        return attrs
+
 
 class CourtUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Court
         fields = ['name', 'is_active']
 
+    def validate(self, attrs):
+        name = attrs.get('name', getattr(self.instance, 'name', None))
+        venue = getattr(self.instance, 'venue', None)
+        if name and venue and Court.objects.filter(venue=venue, name=name).exclude(pk=self.instance.pk).exists():
+            raise serializers.ValidationError('该场馆下已存在同名场地')
+        return attrs
+
 
 # ──────────────────────────────────────────────
 # TimeSlot Serializers
 # ──────────────────────────────────────────────
-class TimeSlotSimpleSerializer(serializers.ModelSerializer):
-    display = serializers.CharField(read_only=True)
-    discounted_price = serializers.SerializerMethodField()
-
-    class Meta:
-        model = TimeSlot
-        fields = ['id', 'start_time', 'end_time', 'price', 'discounted_price',
-                  'display', 'is_active']
+class DiscountedPriceMixin:
+    """三个时段序列化器共用：按当前用户折扣率算折后价。"""
 
     def get_discounted_price(self, obj):
         request = self.context.get('request')
@@ -116,7 +132,17 @@ class TimeSlotSimpleSerializer(serializers.ModelSerializer):
         return obj.price
 
 
-class TimeSlotListSerializer(serializers.ModelSerializer):
+class TimeSlotSimpleSerializer(DiscountedPriceMixin, serializers.ModelSerializer):
+    display = serializers.CharField(read_only=True)
+    discounted_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TimeSlot
+        fields = ['id', 'start_time', 'end_time', 'price', 'discounted_price',
+                  'display', 'is_active']
+
+
+class TimeSlotListSerializer(DiscountedPriceMixin, serializers.ModelSerializer):
     venue_name = serializers.CharField(source='venue.name', read_only=True)
     display = serializers.CharField(read_only=True)
     discounted_price = serializers.SerializerMethodField()
@@ -127,14 +153,8 @@ class TimeSlotListSerializer(serializers.ModelSerializer):
                   'display', 'price', 'discounted_price', 'is_active',
                   'created_at', 'updated_at']
 
-    def get_discounted_price(self, obj):
-        request = self.context.get('request')
-        if request and getattr(request, 'user', None) and request.user.is_authenticated:
-            return (obj.price * request.user.get_discount_rate()).quantize(Decimal('0.01'))
-        return obj.price
 
-
-class TimeSlotDetailSerializer(serializers.ModelSerializer):
+class TimeSlotDetailSerializer(DiscountedPriceMixin, serializers.ModelSerializer):
     venue = VenueListSerializer(read_only=True)
     display = serializers.CharField(read_only=True)
     discounted_price = serializers.SerializerMethodField()
@@ -144,33 +164,43 @@ class TimeSlotDetailSerializer(serializers.ModelSerializer):
         fields = ['id', 'venue', 'start_time', 'end_time', 'price',
                   'discounted_price', 'display', 'is_active', 'created_at', 'updated_at']
 
-    def get_discounted_price(self, obj):
-        request = self.context.get('request')
-        if request and getattr(request, 'user', None) and request.user.is_authenticated:
-            return (obj.price * request.user.get_discount_rate()).quantize(Decimal('0.01'))
-        return obj.price
-
 
 class TimeSlotCreateSerializer(serializers.ModelSerializer):
+    price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0'))
+
     class Meta:
         model = TimeSlot
         fields = ['id', 'venue', 'start_time', 'end_time', 'price', 'is_active']
 
     def validate(self, attrs):
-        if attrs['start_time'] >= attrs['end_time']:
-            raise serializers.ValidationError('结束时间必须大于开始时间')
+        check_slot_conflict(attrs['venue'], attrs['start_time'], attrs['end_time'], None)
         return attrs
 
 
+def check_slot_conflict(venue, start, end, exclude_pk):
+    if start >= end:
+        raise serializers.ValidationError('结束时间必须大于开始时间')
+    qs = TimeSlot.objects.filter(venue=venue)
+    if exclude_pk is not None:
+        qs = qs.exclude(pk=exclude_pk)
+    if qs.filter(start_time=start, end_time=end).exists():
+        raise serializers.ValidationError('该时段已存在')
+    if qs.filter(start_time__lt=end, end_time__gt=start).exists():
+        raise serializers.ValidationError('时段与现有时段重叠，请调整起止时间')
+
+
 class TimeSlotUpdateSerializer(serializers.ModelSerializer):
+    price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0'))
+
     class Meta:
         model = TimeSlot
         fields = ['start_time', 'end_time', 'price', 'is_active']
 
     def validate(self, attrs):
         # 部分更新时用实例上的旧值补齐，避免只改 start/end 一端绕过校验
+        venue = getattr(self.instance, 'venue', None)
         start = attrs.get('start_time', getattr(self.instance, 'start_time', None))
         end = attrs.get('end_time', getattr(self.instance, 'end_time', None))
-        if start and end and start >= end:
-            raise serializers.ValidationError('结束时间必须大于开始时间')
+        if venue and start and end:
+            check_slot_conflict(venue, start, end, self.instance.pk)
         return attrs

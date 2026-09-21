@@ -48,6 +48,27 @@ class BookingCreateTests(APITestCase):
         r = self.client.post('/api/bookings/', {'court': court.id, 'date': past, 'time_slot': slot.id})
         self.assertEqual(r.status_code, 400)
 
+    def test_cross_venue_booking_rejected(self):
+        _, court, _ = make_venue_court_slot()
+        other_venue = Venue.objects.create(name='另一场馆')
+        other_slot = TimeSlot.objects.create(
+            venue=other_venue, start_time='10:00', end_time='11:00', price='100.00',
+        )
+        member = make_user('13800000001')
+        self.client.force_authenticate(user=member)
+        date = (timezone.localdate() + timedelta(days=1)).isoformat()
+        r = self.client.post('/api/bookings/', {
+            'court': court.id, 'date': date, 'time_slot': other_slot.id,
+        })
+        self.assertEqual(r.status_code, 400)
+
+    def test_invalid_list_filters_return_400(self):
+        member = make_user('13800000001')
+        self.client.force_authenticate(user=member)
+        self.assertEqual(self.client.get('/api/bookings/', {'date': 'abc'}).status_code, 400)
+        self.assertEqual(self.client.get('/api/bookings/', {'venue': 'abc'}).status_code, 400)
+        self.assertEqual(self.client.get('/api/bookings/', {'status': 'nope'}).status_code, 400)
+
 
 class CancelPolicyTests(APITestCase):
     def _paid_booking(self, member, d, start, amount='100.00'):

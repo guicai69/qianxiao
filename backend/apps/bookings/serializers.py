@@ -44,6 +44,8 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         if date < d.today():
             raise serializers.ValidationError('不可预约过去的日期')
 
+        if court.venue_id != time_slot.venue_id:
+            raise serializers.ValidationError('场地与时段不属于同一场馆')
         if not court.is_active:
             raise serializers.ValidationError('该场地已停用')
         if not time_slot.is_active:

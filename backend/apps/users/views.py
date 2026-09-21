@@ -10,7 +10,7 @@ from .serializers import (
     UserUpdateSerializer, ChangePasswordSerializer,
     AdminUserCreateSerializer, AdminUserUpdateSerializer,
 )
-from .permissions import IsAdmin, IsAdminOrReception, IsOwnerOrStaff
+from .permissions import IsAdmin, IsAdminOrReception
 
 
 class RegisterView(generics.CreateAPIView):

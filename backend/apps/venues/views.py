@@ -1,33 +1,95 @@
 from datetime import date
 
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.db.models import Count
+from rest_framework.exceptions import ValidationError
+from rest_framework.throttling import ScopedRateThrottle
+from django.db.models import Count, ProtectedError
+from django.db import IntegrityError
 
 from .models import Venue, Court, TimeSlot
 from apps.bookings.models import Booking
 from apps.bookings.utils import cancel_expired_pendings
 from .serializers import (
-    VenueListSerializer, VenueDetailSerializer, VenueCreateSerializer, VenueUpdateSerializer,
+    VenueListSerializer, VenuePublicSerializer, VenueDetailSerializer,
+    VenueCreateSerializer, VenueUpdateSerializer,
     CourtListSerializer, CourtDetailSerializer, CourtCreateSerializer, CourtUpdateSerializer,
     TimeSlotListSerializer, TimeSlotDetailSerializer, TimeSlotCreateSerializer, TimeSlotUpdateSerializer,
 )
-from apps.users.permissions import IsAdmin, IsAdminOrReception
+from apps.users.permissions import IsAdminOrReception
 
 
-class VenueViewSet(viewsets.ModelViewSet):
-    queryset = Venue.objects.prefetch_related('courts', 'time_slots').all()
+def parse_int_param(value, name):
+    if value in (None, ''):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        raise ValidationError({name: f'{name} 参数必须是数字'})
+
+
+def parse_bool_param(value, name):
+    if value in (None, ''):
+        return None
+    if str(value).lower() in ('true', '1'):
+        return True
+    if str(value).lower() in ('false', '0'):
+        return False
+    raise ValidationError({name: f'{name} 参数必须是 true/false'})
+
+
+class ProtectedDeleteMixin:
+    """有预约订单关联的资源不可删除：把 PROTECT 外键的 ProtectedError 转成 400。"""
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response({'detail': '存在关联的预约订单，无法删除'}, status=400)
+
+
+class IntegrityErrorCreateMixin:
+    """预校验与并发写入之间的竞态兜底：唯一约束撞库返回 400 而不是 500。"""
+
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except IntegrityError:
+            return Response({'detail': '数据已存在，请勿重复提交'}, status=400)
+
+
+class VenueScopedMixin:
+    """courts/time-slots 共用：按 venue 过滤 + 读写权限边界。"""
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [IsAuthenticated()]
+        return [IsAdminOrReception()]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        venue_id = parse_int_param(self.request.query_params.get('venue'), 'venue')
+        if venue_id:
+            qs = qs.filter(venue_id=venue_id)
+        return qs
+
+
+class VenueViewSet(ProtectedDeleteMixin, IntegrityErrorCreateMixin, viewsets.ModelViewSet):
+    queryset = Venue.objects.all()
 
     def get_queryset(self):
         qs = super().get_queryset()
         name = self.request.query_params.get('name')
-        is_active = self.request.query_params.get('is_active')
+        is_active = parse_bool_param(self.request.query_params.get('is_active'), 'is_active')
         if name:
             qs = qs.filter(name__icontains=name)
-        if is_active not in (None, ''):
-            qs = qs.filter(is_active=is_active.lower() in ('true', '1'))
+        if is_active is not None:
+            qs = qs.filter(is_active=is_active)
+        # 列表页只查一次 court_count，避免 count() 逐条打库（N+1）
+        if self.action == 'list':
+            qs = qs.annotate(court_count=Count('courts'))
         return qs
 
     def get_serializer_class(self):
@@ -48,19 +110,22 @@ class VenueViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated()]
         return [IsAdminOrReception()]
 
-    @action(detail=False, methods=['get'], authentication_classes=[])
+    @action(detail=False, methods=['get'], authentication_classes=[],
+            throttle_classes=[ScopedRateThrottle])
     def public(self, request):
         """游客可见的场馆清单（给未登录的首页用）。
 
-        只读，只返回场馆基础信息，不含场地、时段与价格明细。
+        只读，只返回场馆基础信息，不含场地、时段与价格明细，也不含联系电话。
         单独开一个动作而不是放宽 list/retrieve 的权限，是为了保住
         "登录后才能查可预约时段"这条边界。权限在 get_permissions() 里登记。
         """
-        qs = Venue.objects.filter(is_active=True).order_by('id')
+        self.throttle_scope = 'venue-public'
+        qs = (Venue.objects.filter(is_active=True)
+              .annotate(court_count=Count('courts')).order_by('id'))
         page = self.paginate_queryset(qs)
         if page is not None:
-            return self.get_paginated_response(VenueListSerializer(page, many=True).data)
-        return Response(VenueListSerializer(qs, many=True).data)
+            return self.get_paginated_response(VenuePublicSerializer(page, many=True).data)
+        return Response(VenuePublicSerializer(qs, many=True).data)
 
     @action(detail=True, methods=['get'])
     def availability(self, request, pk=None):
@@ -74,10 +139,11 @@ class VenueViewSet(viewsets.ModelViewSet):
         except ValueError:
             return Response({'detail': 'date 参数格式错误'}, status=400)
 
+        # 惰性释放过期未支付订单（15 分钟占用设计；pay 侧用行锁串行，此处无竞态）
         cancel_expired_pendings()
 
         qs = Booking.objects.filter(
-            court__venue=venue, date=bdate,
+            court__venue=venue, court__is_active=True, date=bdate,
         ).exclude(status='cancelled')
         occupied = [
             {'court_id': b.court_id, 'time_slot_id': b.time_slot_id}
@@ -85,15 +151,8 @@ class VenueViewSet(viewsets.ModelViewSet):
         ]
         return Response({'date': date_str, 'occupied': occupied})
 
-    @action(detail=True, methods=['patch'])
-    def toggle_active(self, request, pk=None):
-        venue = self.get_object()
-        venue.is_active = not venue.is_active
-        venue.save(update_fields=['is_active'])
-        return Response({'code': 200, 'message': '状态已更新', 'data': {'is_active': venue.is_active}})
 
-
-class CourtViewSet(viewsets.ModelViewSet):
+class CourtViewSet(VenueScopedMixin, ProtectedDeleteMixin, IntegrityErrorCreateMixin, viewsets.ModelViewSet):
     queryset = Court.objects.select_related('venue').all()
 
     def get_serializer_class(self):
@@ -105,29 +164,8 @@ class CourtViewSet(viewsets.ModelViewSet):
             return CourtUpdateSerializer
         return CourtDetailSerializer
 
-    def get_permissions(self):
-        if self.action == 'list':
-            return [IsAuthenticated()]
-        if self.action == 'retrieve':
-            return [IsAuthenticated()]
-        return [IsAdminOrReception()]
 
-    def get_queryset(self):
-        qs = super().get_queryset()
-        venue_id = self.request.query_params.get('venue')
-        if venue_id:
-            qs = qs.filter(venue_id=venue_id)
-        return qs
-
-    @action(detail=True, methods=['patch'])
-    def toggle_active(self, request, pk=None):
-        court = self.get_object()
-        court.is_active = not court.is_active
-        court.save(update_fields=['is_active'])
-        return Response({'code': 200, 'message': '状态已更新', 'data': {'is_active': court.is_active}})
-
-
-class TimeSlotViewSet(viewsets.ModelViewSet):
+class TimeSlotViewSet(VenueScopedMixin, ProtectedDeleteMixin, IntegrityErrorCreateMixin, viewsets.ModelViewSet):
     queryset = TimeSlot.objects.select_related('venue').all()
 
     def get_serializer_class(self):
@@ -138,24 +176,3 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
         if self.action in ('update', 'partial_update'):
             return TimeSlotUpdateSerializer
         return TimeSlotDetailSerializer
-
-    def get_permissions(self):
-        if self.action == 'list':
-            return [IsAuthenticated()]
-        if self.action == 'retrieve':
-            return [IsAuthenticated()]
-        return [IsAdminOrReception()]
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        venue_id = self.request.query_params.get('venue')
-        if venue_id:
-            qs = qs.filter(venue_id=venue_id)
-        return qs
-
-    @action(detail=True, methods=['patch'])
-    def toggle_active(self, request, pk=None):
-        slot = self.get_object()
-        slot.is_active = not slot.is_active
-        slot.save(update_fields=['is_active'])
-        return Response({'code': 200, 'message': '状态已更新', 'data': {'is_active': slot.is_active}})

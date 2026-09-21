@@ -40,3 +40,45 @@ class AvailabilityTests(APITestCase):
         self.assertEqual(r.status_code, 400)
         slot.refresh_from_db()
         self.assertEqual(slot.start_time.strftime('%H:%M'), '10:00')
+
+
+class SlotIntegrityTests(APITestCase):
+    """t6 审查发现的正确性漏洞回归测试"""
+
+    def setUp(self):
+        self.admin = make_user('13800000000', role='admin')
+        self.venue = Venue.objects.create(name='测试场馆')
+        self.client.force_authenticate(user=self.admin)
+
+    def test_negative_price_rejected(self):
+        r = self.client.post('/api/time-slots/', {
+            'venue': self.venue.id, 'start_time': '08:00', 'end_time': '09:00', 'price': '-50.00',
+        })
+        self.assertEqual(r.status_code, 400)
+
+    def test_overlap_slot_rejected(self):
+        TimeSlot.objects.create(venue=self.venue, start_time='10:00', end_time='11:00', price='100.00')
+        r = self.client.post('/api/time-slots/', {
+            'venue': self.venue.id, 'start_time': '10:30', 'end_time': '11:30', 'price': '100.00',
+        })
+        self.assertEqual(r.status_code, 400)
+
+    def test_duplicate_court_name_rejected(self):
+        Court.objects.create(venue=self.venue, name='1号场')
+        r = self.client.post('/api/courts/', {'venue': self.venue.id, 'name': '1号场'})
+        self.assertEqual(r.status_code, 400)
+
+    def test_delete_venue_with_booking_returns_400(self):
+        member = make_user('13800000001')
+        court = Court.objects.create(venue=self.venue, name='1号场')
+        slot = TimeSlot.objects.create(venue=self.venue, start_time='10:00', end_time='11:00', price='100.00')
+        Booking.objects.create(
+            user=member, court=court, date=timezone.localdate(), time_slot=slot,
+            status='paid', amount='100.00',
+        )
+        r = self.client.delete(f'/api/venues/{self.venue.id}/')
+        self.assertEqual(r.status_code, 400)
+
+    def test_non_numeric_venue_filter_returns_400(self):
+        r = self.client.get('/api/courts/', {'venue': 'abc'})
+        self.assertEqual(r.status_code, 400)

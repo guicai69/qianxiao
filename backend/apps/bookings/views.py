@@ -64,17 +64,27 @@ class BookingViewSet(viewsets.ModelViewSet):
         two_days_ago = date.today() - timedelta(days=2)
         qs = qs.exclude(status='cancelled', date__lt=two_days_ago)
 
-        # Filters
+        # Filters（参数先校验再过滤，非法输入返回 400 而不是 500）
         venue = self.request.query_params.get('venue')
         if venue:
+            try:
+                venue = int(venue)
+            except (TypeError, ValueError):
+                raise serializers.ValidationError({'venue': 'venue 参数必须是数字'})
             qs = qs.filter(court__venue_id=venue)
 
         bdate = self.request.query_params.get('date')
         if bdate:
+            try:
+                bdate = date.fromisoformat(bdate)
+            except ValueError:
+                raise serializers.ValidationError({'date': 'date 参数格式错误'})
             qs = qs.filter(date=bdate)
 
         status_filter = self.request.query_params.get('status')
         if status_filter:
+            if status_filter not in dict(Booking.STATUS_CHOICES):
+                raise serializers.ValidationError({'status': 'status 参数不合法'})
             qs = qs.filter(status=status_filter)
 
         return qs.order_by('-created_at')

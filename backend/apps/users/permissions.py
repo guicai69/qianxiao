@@ -12,10 +12,3 @@ class IsAdminOrReception(BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role in ['admin', 'reception']
 
-
-class IsOwnerOrStaff(BasePermission):
-    """本人 或 管理员/前台"""
-    def has_object_permission(self, request, view, obj):
-        if request.user.role in ['admin', 'reception']:
-            return True
-        return obj == request.user

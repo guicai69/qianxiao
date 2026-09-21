@@ -2,7 +2,7 @@ import csv
 from datetime import timedelta
 from decimal import Decimal
 
-from rest_framework import viewsets, status, generics
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -37,7 +37,26 @@ def get_recharge_bonus(amount):
     return bonus
 
 
-class PaymentViewSet(viewsets.ModelViewSet):
+def check_booking_payable(booking):
+    """pay 与 confirm_cash 共用的支付前校验。返回 None 表示可支付，否则返回错误 Response。"""
+    if booking.status != 'pending':
+        return Response(
+            {'code': 400, 'message': '订单状态不正确，当前状态：' + booking.get_status_display()},
+            status=400,
+        )
+    if timezone.now() - booking.created_at > timedelta(minutes=PENDING_TIMEOUT_MINUTES):
+        booking.status = 'cancelled'
+        booking.save()
+        return Response({'code': 400, 'message': '订单已超时，请重新预约'}, status=400)
+    if Booking.objects.filter(
+        court_id=booking.court_id, date=booking.date,
+        time_slot_id=booking.time_slot_id, status='paid',
+    ).exclude(pk=booking.pk).exists():
+        return Response({'code': 400, 'message': '该时段已被预约'}, status=400)
+    return None
+
+
+class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Payment.objects.select_related(
         'user', 'booking', 'booking__court', 'booking__court__venue'
     ).all()
@@ -48,7 +67,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
         return PaymentDetailSerializer
 
     def get_permissions(self):
-        if self.action in ('create', 'pay', 'recharge', 'list', 'retrieve'):
+        if self.action in ('pay', 'recharge', 'bonus_tiers', 'list', 'retrieve'):
             return [IsAuthenticated()]
         return [IsAdminOrReception()]
 
@@ -61,6 +80,16 @@ class PaymentViewSet(viewsets.ModelViewSet):
         if type_filter:
             qs = qs.filter(type=type_filter)
         return qs
+
+    @action(detail=False, methods=['get'])
+    def bonus_tiers(self, request):
+        """充值赠送档位单一真源：前端展示从这里取，不再与后端双写常量。"""
+        return Response({
+            'code': 200,
+            'data': {'tiers': [
+                {'amount': str(a), 'bonus': str(b)} for a, b in RECHARGE_BONUS_TIERS
+            ]},
+        })
 
     @action(detail=False, methods=['post'])
     @transaction.atomic
@@ -113,19 +142,9 @@ class PaymentViewSet(viewsets.ModelViewSet):
         except Booking.DoesNotExist:
             return Response({'code': 400, 'message': '订单不存在'}, status=400)
 
-        if booking.status != 'pending':
-            return Response({'code': 400, 'message': '订单状态不正确，当前状态：' + booking.get_status_display()}, status=400)
-
-        if timezone.now() - booking.created_at > timedelta(minutes=PENDING_TIMEOUT_MINUTES):
-            booking.status = 'cancelled'
-            booking.save()
-            return Response({'code': 400, 'message': '订单已超时，请重新预约'}, status=400)
-
-        if Booking.objects.filter(
-            court_id=booking.court_id, date=booking.date,
-            time_slot_id=booking.time_slot_id, status='paid',
-        ).exclude(pk=booking.pk).exists():
-            return Response({'code': 400, 'message': '该时段已被预约'}, status=400)
+        err = check_booking_payable(booking)
+        if err is not None:
+            return err
 
         # 锁用户行再读余额，防止两笔订单并发支付同时通过余额检查
         user = User.objects.select_for_update().get(pk=user.pk)
@@ -169,22 +188,9 @@ class PaymentViewSet(viewsets.ModelViewSet):
         except (Booking.DoesNotExist, ValueError, TypeError):
             return Response({'code': 400, 'message': '订单不存在'}, status=400)
 
-        if booking.status != 'pending':
-            return Response(
-                {'code': 400, 'message': '订单状态不正确，当前状态：' + booking.get_status_display()},
-                status=400,
-            )
-
-        if timezone.now() - booking.created_at > timedelta(minutes=PENDING_TIMEOUT_MINUTES):
-            booking.status = 'cancelled'
-            booking.save()
-            return Response({'code': 400, 'message': '订单已超时，请重新预约'}, status=400)
-
-        if Booking.objects.filter(
-            court_id=booking.court_id, date=booking.date,
-            time_slot_id=booking.time_slot_id, status='paid',
-        ).exclude(pk=booking.pk).exists():
-            return Response({'code': 400, 'message': '该时段已被预约'}, status=400)
+        err = check_booking_payable(booking)
+        if err is not None:
+            return err
 
         booking.status = 'paid'
         booking.save()
