@@ -4,11 +4,10 @@
 
 ## Project
 
-- **后端** `backend/` — Django 4.2 + DRF + SimpleJWT + drf-spectacular
+- **后端** `backend/` — Django 5.2 + DRF 3.17 + SimpleJWT + drf-spectacular（旧版写的 4.2 已过时，以 requirements.txt 与实测为准）
 - **前端** `frontend/` — Vue 3 (Composition API) + Vite 8 + Element Plus + Pinia + Axios + ECharts
-- **缓存** Redis + django-redis — JWT 黑名单、场地可用时段缓存、统计缓存
+- **缓存** Redis 预留未启用（依赖已从 requirements 移除，需要时再加回）
 - **数据库** MySQL 8.4, 端口 3306, 库名 `badminton_venue`, root/123456
-- **缓存** Redis, 端口 6379, django-redis (JWT 黑名单 / 热点缓存 / 限流)
 - **入口** 后端 `backend/manage.py` runserver 0.0.0.0:8000; 前端 `npm run dev` → :3000 → proxy `/api` → :8000
 
 ## Commands
@@ -54,15 +53,19 @@ backend/
 │   ├── venues/                      # 场馆/场地/时段管理
 │   ├── bookings/                    # 预约订单 + 冲突检测
 │   ├── payments/                    # 模拟支付 + 充值
-│   └── stats/                       # 数据统计 + ECharts
+│   ├── stats/                       # 数据统计 + ECharts（无 models）
+│   └── announcements/               # 系统公告
 └── requirements.txt
 
 frontend/src/
-├── main.js                          # 入口：注册 ElementPlus/中文/Pinia/Router/图标
+├── main.js                          # 入口：ElementPlus/Pinia/Router（图标按需 import，不全局注册）
 ├── api/index.js                     # axios 封装 + 基础 API
 ├── router/index.js                  # 路由：/admin /reception / /login
 ├── store/index.js                   # Pinia: useUserStore (token/refreshToken/userInfo)
 ├── utils/request.js                 # axios 拦截器：JWT 附加 + 401/403/500 统一处理
+├── utils/format.js                  # 统一展示格式化（金额/折扣/状态标签），页面不许手抄
+├── styles/                          # 设计令牌 tokens.css + base/element/brand
+├── components/brand/                # AuthShell / CourtScene 品牌组件
 ├── layouts/
 │   ├── AdminLayout.vue              # 侧边栏布局（管理端/前台共用）
 │   └── MemberLayout.vue             # 顶部导航布局（会员端）
