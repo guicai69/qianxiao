@@ -50,7 +50,7 @@
             </template>
             <template v-else>
               累计消费 <b class="mono">¥{{ money(spend) }}</b><br />
-              已是最高等级，场地费用按 {{ discountText(userInfo.level) }} 结算
+              已是最高等级，场地费用按 {{ discountText() }} 结算
             </template>
           </p>
         </div>
@@ -86,7 +86,7 @@
           </div>
           <div v-if="userInfo.role === 'member'" class="fact">
             <dt>会员折扣</dt>
-            <dd>{{ discountText(userInfo.level) }}</dd>
+            <dd>{{ discountText() }}</dd>
           </div>
           <div class="fact">
             <dt>账户余额</dt>
@@ -187,12 +187,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from "vue"
+import { ref, reactive, computed, onMounted } from "vue"
 import { ElMessage } from "element-plus"
 import { User, Lock, Wallet } from "@element-plus/icons-vue"
 import api from "@/api"
 import { paymentApi } from "@/api/payments"
-import { getRechargeBonus, RECHARGE_BONUS_TIERS } from "@/utils/recharge"
+import { getRechargeBonus, RECHARGE_BONUS_TIERS, loadBonusTiers } from "@/utils/recharge"
+import { money, roleLabel, levelLabel, discountText as discountTextOf } from "@/utils/format"
 import { useUserStore } from "@/store"
 
 const userStore = useUserStore()
@@ -225,24 +226,20 @@ const pwdRules = {
 
 const initial = computed(() => (userInfo.nickname || userInfo.phone || "U").slice(0, 1))
 const roleTag = (r) => ({ admin: "danger", reception: "warning", member: "success" }[r])
-const roleLabel = (r) => ({ admin: "管理员", reception: "前台", member: "会员" }[r])
-const levelLabel = (l) => ({ normal: "普通会员", silver: "银卡会员", gold: "金卡会员" }[l] || l)
-const discountText = (l) =>
-  ({ normal: "原价", silver: "95折", gold: "90折" }[l] || "原价")
+// 折扣以接口下发的 discount_rate 为准，不在前端硬编码折数（避免与后端 DISCOUNT_RATES 漂移）
+const discountText = () => discountTextOf(userInfo.discount_rate ?? 1)
 
-const money = (v) => Number(v || 0).toFixed(2)
 const joinedAt = computed(() => userInfo.date_joined?.slice(0, 10) || "未记录")
 
 const rechargeTiers = RECHARGE_BONUS_TIERS
 const rechargeBonus = computed(() => getRechargeBonus(rechargeForm.amount))
 const rechargeCredit = computed(() => Number(rechargeForm.amount || 0) + rechargeBonus.value)
 
-// 等级阶梯：阈值与折扣跟后端一致，只做展示。
-// 用「已走过 / 当前」的节点表达进度，不编百分比。
+// 等级阶梯：阈值跟后端一致，只做展示；折数按 PRODUCT.md §10 的 9.5折 口径
 const LEVEL_TIERS = [
   { key: "normal", name: "普通会员", rate: "原价", at: 0 },
-  { key: "silver", name: "银卡会员", rate: "95折", at: 500 },
-  { key: "gold", name: "金卡会员", rate: "90折", at: 2000 },
+  { key: "silver", name: "银卡会员", rate: "9.5折", at: 500 },
+  { key: "gold", name: "金卡会员", rate: "9折", at: 2000 },
 ]
 
 const spend = computed(() => Number(userInfo.total_spend || 0))
@@ -317,6 +314,8 @@ async function handleRecharge() {
     recharging.value = false
   }
 }
+
+onMounted(loadBonusTiers)
 </script>
 
 <style scoped>

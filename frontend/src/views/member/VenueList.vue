@@ -200,10 +200,10 @@ onMounted(fetchVenues)
   position: relative;
   aspect-ratio: 3 / 2;
   overflow: hidden;
-  background-color: #e3ecf9;
+  background-color: var(--sunken);
   background-image:
-    linear-gradient(90deg, transparent calc(50% - 1px), rgba(26, 95, 208, 0.2) 50%, transparent calc(50% + 1px)),
-    radial-gradient(60% 50% at 50% 50%, rgba(26, 95, 208, 0.1), transparent 72%);
+    linear-gradient(90deg, transparent calc(50% - 1px), color-mix(in srgb, var(--accent) 20%, transparent) 50%, transparent calc(50% + 1px)),
+    radial-gradient(60% 50% at 50% 50%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 72%);
 }
 
 .row-cover img {
@@ -219,7 +219,7 @@ onMounted(fetchVenues)
   inset: 0;
   pointer-events: none;
   mix-blend-mode: multiply;
-  background: linear-gradient(180deg, rgba(20, 44, 96, 0.03) 0%, rgba(16, 32, 64, 0.28) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 3%, transparent) 0%, color-mix(in srgb, var(--accent) 28%, transparent) 100%);
 }
 
 .row-no {
@@ -229,9 +229,9 @@ onMounted(fetchVenues)
   z-index: 2;
   padding: 3px 8px;
   border-radius: 999px;
-  background: rgba(16, 32, 64, 0.58);
+  background: color-mix(in srgb, var(--accent) 58%, transparent);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #f4f6f1;
+  color: var(--on-accent);
   font-size: var(--fs-11);
   font-weight: 700;
   letter-spacing: 0.12em;

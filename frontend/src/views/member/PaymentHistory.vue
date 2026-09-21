@@ -127,7 +127,15 @@ import { ref, reactive, computed, onMounted } from "vue"
 import { ElMessage } from "element-plus"
 import { Wallet } from "@element-plus/icons-vue"
 import { paymentApi } from "@/api/payments"
-import { getRechargeBonus } from "@/utils/recharge"
+import { getRechargeBonus, loadBonusTiers } from "@/utils/recharge"
+import {
+  money,
+  paymentTypeLabel as typeLabel,
+  paymentTypeTag as typeTag,
+  paymentMethodLabel as methodLabel,
+  paymentStatusLabel as statusLabel,
+  paymentStatusTag as statusTag,
+} from "@/utils/format"
 import { useUserStore } from "@/store"
 
 const userStore = useUserStore()
@@ -144,14 +152,7 @@ const rechargeCredit = computed(() => Number(rechargeForm.amount || 0) + recharg
 
 const query = reactive({ page: 1, page_size: 20 })
 
-const money = (v) => Number(v || 0).toFixed(2)
 const formatTime = (t) => (t || "").slice(0, 19).replace("T", " ")
-const typeLabel = (t) => ({ recharge: "充值", booking: "消费", refund: "退款" }[t] || t)
-const typeTag = (t) => ({ recharge: "success", booking: "primary", refund: "warning" }[t] || "info")
-const methodLabel = (m) =>
-  ({ balance: "余额", wechat: "微信", alipay: "支付宝", cash: "现金" }[m] || "其他")
-const statusLabel = (s) => ({ success: "成功", failed: "失败", pending: "处理中" }[s] || s)
-const statusTag = (s) => ({ success: "success", failed: "danger", pending: "info" }[s] || "info")
 
 async function fetchData() {
   loading.value = true
@@ -192,7 +193,10 @@ async function handleRecharge() {
   }
 }
 
-onMounted(fetchData)
+onMounted(() => {
+  fetchData()
+  loadBonusTiers()
+})
 </script>
 
 <style scoped>

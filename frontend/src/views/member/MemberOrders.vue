@@ -145,7 +145,8 @@ import { ElMessage, ElMessageBox } from "element-plus"
 import { Wallet } from "@element-plus/icons-vue"
 import { bookingApi } from "@/api/bookings"
 import { paymentApi } from "@/api/payments"
-import { getRechargeBonus } from "@/utils/recharge"
+import { getRechargeBonus, loadBonusTiers } from "@/utils/recharge"
+import { money, discountText, bookingStatusTag as statusTag, bookingStatusLabel as statusLabel } from "@/utils/format"
 import { useUserStore } from "@/store"
 
 const userStore = useUserStore()
@@ -161,18 +162,8 @@ const query = reactive({ page: 1, page_size: 20 })
 const rechargeForm = reactive({ amount: 100, method: "wechat" })
 const payForm = reactive({ bookingId: null, amount: 0, method: "balance" })
 
-const money = (v) => Number(v || 0).toFixed(2)
 const rechargeBonus = computed(() => getRechargeBonus(rechargeForm.amount))
 const rechargeCredit = computed(() => Number(rechargeForm.amount || 0) + rechargeBonus.value)
-
-const statusLabel = (s) => ({ pending: "待支付", paid: "已支付", cancelled: "已取消" }[s] || s)
-const statusTag = (s) => ({ pending: "warning", paid: "success", cancelled: "info" }[s] || "info")
-
-const discountText = (rate) => {
-  const value = Number(rate)
-  if (value >= 1) return "原价"
-  return `${Math.round(value * 100)}折`
-}
 
 /** 有折扣（原价与实付不同）时才展示原价那一行 */
 const hasDiscount = (row) => {
@@ -250,7 +241,10 @@ async function handleCancel(row) {
   }
 }
 
-onMounted(fetchData)
+onMounted(() => {
+  fetchData()
+  loadBonusTiers()
+})
 </script>
 
 <style scoped>

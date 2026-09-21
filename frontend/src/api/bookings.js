@@ -1,6 +1,5 @@
-import axios from 'axios'
 import api from '@/api'
-import { useUserStore } from '@/store'
+import { fetchCsv } from '@/utils/download'
 
 export const bookingApi = {
   list(params) { return api.get('bookings/', params) },
@@ -9,13 +8,5 @@ export const bookingApi = {
   cancel(id) { return api.post(`bookings/${id}/cancel/`) },
   my(params) { return api.get('bookings/my/', params) },
   checkIn(id) { return api.post(`bookings/${id}/check_in/`) },
-  async exportCsv(params) {
-    const userStore = useUserStore()
-    const res = await axios.get('/api/bookings/export_csv/', {
-      params,
-      headers: { Authorization: `Bearer ${userStore.token}` },
-      responseType: 'blob',
-    })
-    return res.data
-  },
+  exportCsv(params) { return fetchCsv('/api/bookings/export_csv/', params) },
 }

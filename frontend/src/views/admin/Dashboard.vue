@@ -117,6 +117,7 @@ import * as echarts from "echarts"
 import { venueApi } from "@/api/venues"
 import api from "@/api"
 import { statsApi } from "@/api/stats"
+import { money } from "@/utils/format"
 import { Money, Calendar, TrendCharts, Warning } from "@element-plus/icons-vue"
 import {
   CHART_COLORS,
@@ -142,8 +143,6 @@ let barChart = null
 let pieChart = null
 let lineChart = null
 let slotsChart = null
-
-const money = (n) => Number(n || 0).toFixed(2)
 
 /* 一层：四个主指标，上下文一行全部来自统计接口的真实字段 */
 const primaryTiles = computed(() => {

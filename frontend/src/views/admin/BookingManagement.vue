@@ -116,18 +116,10 @@ import { bookingApi } from "@/api/bookings"
 import { paymentApi } from "@/api/payments"
 import { venueApi } from "@/api/venues"
 import { downloadBlob } from "@/utils/download"
+import { discountText, bookingStatusTag as statusTag, bookingStatusLabel as statusLabel } from "@/utils/format"
 
 const list = ref([]); const total = ref(0); const loading = ref(false); const venues = ref([])
 const query = reactive({ page: 1, page_size: 20, date: "", venue: "", status: "" })
-
-const discountText = (rate) => {
-  const value = Number(rate)
-  if (value >= 1) return "原价"
-  return `${Math.round(value * 100)}折`
-}
-
-const statusTag = (s) => ({ pending: "warning", paid: "success", cancelled: "danger" }[s] || "info")
-const statusLabel = (s) => ({ pending: "待支付", paid: "已支付", cancelled: "已取消" }[s] || s)
 
 async function fetchVenues() {
   try { const r = await venueApi.list({ page_size: 100 }); venues.value = r.results || [] } catch {}

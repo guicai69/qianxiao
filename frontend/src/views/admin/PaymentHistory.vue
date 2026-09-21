@@ -114,19 +114,17 @@ import { ElMessage } from "element-plus"
 import { Download } from "@element-plus/icons-vue"
 import { paymentApi } from "@/api/payments"
 import { downloadBlob } from "@/utils/download"
+import {
+  paymentTypeTag as typeTag,
+  paymentTypeLabel as typeLabel,
+  paymentMethodLabel as methodLabel,
+} from "@/utils/format"
 
 const list = ref([])
 const total = ref(0)
 const loading = ref(false)
 const activeType = ref("")
 const query = reactive({ page: 1, page_size: 20 })
-
-const typeTag = (type) =>
-  ({ recharge: "success", booking: "primary", refund: "warning" }[type] || "info")
-const typeLabel = (type) =>
-  ({ recharge: "充值", booking: "消费", refund: "退款" }[type] || type)
-const methodLabel = (method) =>
-  ({ balance: "余额", wechat: "微信", alipay: "支付宝" }[method] || method)
 
 async function fetchData() {
   loading.value = true

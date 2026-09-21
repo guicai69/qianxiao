@@ -56,12 +56,34 @@
       <div class="detail-grid">
         <!-- 主区：场地 × 时段的印相板 -->
         <section class="board-panel surface">
+          <div v-if="!venue.is_active" class="venue-closed">
+            <el-icon :size="18"><WarningFilled /></el-icon>
+            <span>该场馆已停用，仅可查看场地与时段，暂不支持预约。</span>
+          </div>
           <header class="board-head">
             <div class="board-head-left">
               <h2>选时段</h2>
               <p>先选日期，再点棋盘上任意一格</p>
             </div>
             <div class="board-head-right">
+              <div class="date-quick">
+                <button
+                  type="button"
+                  class="quick-chip"
+                  :class="{ 'is-on': bookDate === quickToday }"
+                  @click="jumpDate(0)"
+                >
+                  今天
+                </button>
+                <button
+                  type="button"
+                  class="quick-chip"
+                  :class="{ 'is-on': bookDate === quickTomorrow }"
+                  @click="jumpDate(1)"
+                >
+                  明天
+                </button>
+              </div>
               <el-date-picker
                 v-model="bookDate"
                 type="date"
@@ -109,8 +131,8 @@
                     type="button"
                     class="cell drop-in"
                     :style="{ '--i': row }"
-                    :class="{ 'is-booked': isBooked(c, s) }"
-                    :disabled="isBooked(c, s)"
+                    :class="{ 'is-booked': isBooked(c, s), 'is-off': !venue.is_active }"
+                    :disabled="isBooked(c, s) || !venue.is_active"
                     :aria-label="`${c.name} ${s.display} ${isBooked(c, s) ? '已预约' : '可预约'}`"
                     @click="pick(c, s)"
                   >
@@ -130,8 +152,9 @@
                       :key="'m' + c.id + '-' + s.id"
                       type="button"
                       class="court-chip"
-                      :class="{ 'is-booked': isBooked(c, s) }"
-                      :disabled="isBooked(c, s)"
+                      :class="{ 'is-booked': isBooked(c, s), 'is-off': !venue.is_active }"
+                      :disabled="isBooked(c, s) || !venue.is_active"
+                      :aria-label="`${c.name} ${s.display} ${isBooked(c, s) ? '已预约' : '可预约'}`"
                       @click="pick(c, s)"
                     >
                       <span class="chip-name">{{ c.name }}</span>
@@ -165,7 +188,7 @@
             </div>
             <div class="receipt-row">
               <span>账户余额</span>
-              <strong class="mono">¥{{ Number(userStore.userInfo?.balance || 0).toFixed(2) }}</strong>
+              <strong class="mono">¥{{ balance.toFixed(2) }}</strong>
             </div>
             <hr class="hairline" />
             <p class="receipt-note">
@@ -227,8 +250,9 @@
 
       <div class="pay-methods-title">选择支付方式</div>
       <el-radio-group v-model="payForm.method" class="pay-methods">
-        <el-radio value="balance" border>
-          余额支付 (¥{{ userStore.userInfo?.balance || 0 }})
+        <el-radio value="balance" border :disabled="balance < payForm.amount">
+          余额支付 (¥<span class="mono">{{ balance.toFixed(2) }}</span>)
+          <span v-if="balance < payForm.amount" class="pay-hint">· 余额不足</span>
         </el-radio>
         <el-radio value="wechat" border>微信支付</el-radio>
         <el-radio value="alipay" border>支付宝</el-radio>
@@ -243,15 +267,16 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Back, OfficeBuilding, Calendar, Wallet } from '@element-plus/icons-vue'
+import { Back, OfficeBuilding, Calendar, Wallet, WarningFilled } from '@element-plus/icons-vue'
 import { venueApi } from '@/api/venues'
 import { bookingApi } from '@/api/bookings'
 import { paymentApi } from '@/api/payments'
 import { useUserStore } from '@/store'
 import { hideBrokenImage } from '@/utils/venueVisual'
+import { discountText } from '@/utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -259,9 +284,11 @@ const userStore = useUserStore()
 const venue = ref(null)
 const loading = ref(true)
 const bookingLoading = ref(false)
+const stayAfterPay = ref(false)
 const bookDate = ref('')
 const selectedCourt = ref(null)
 const bookedSlots = ref([])
+const bookedDate = ref('')
 const showPayDialog = ref(false)
 const paying = ref(false)
 const payForm = ref({
@@ -279,6 +306,9 @@ const payForm = ref({
 const courts = computed(() => venue.value?.courts || [])
 const slots = computed(() => (venue.value?.time_slots || []).filter((s) => s.is_active !== false))
 const boardStyle = computed(() => ({ '--cols': Math.max(courts.value.length, 1) }))
+const balance = computed(() => Number(userStore.userInfo?.balance || 0) || 0)
+const quickToday = computed(() => formatDate(0))
+const quickTomorrow = computed(() => formatDate(1))
 
 const discountRate = computed(() => Number(userStore.userInfo?.discount_rate ?? 1) || 1)
 const levelLabel = computed(() => {
@@ -292,16 +322,24 @@ function memberPrice(row) {
   return discounted > 0 && discounted < price ? discounted : price
 }
 
-function discountText(rate) {
-  const value = Number(rate)
-  if (value >= 1) return '原价'
-  return `${Math.round(value * 100)}折`
-}
-
 function disabledDate(time) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return time.getTime() < today.getTime()
+}
+
+function formatDate(offset = 0) {
+  const d = new Date()
+  d.setDate(d.getDate() + offset)
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
+/** 快捷跳转：今天 / 明天（点当前已选日期也重新拉一次占用） */
+function jumpDate(offset) {
+  bookDate.value = formatDate(offset)
+  fetchBookings()
 }
 
 /** 某片场地某个时段是否已经被占 */
@@ -313,6 +351,10 @@ function isBooked(court, slot) {
 
 /** 棋盘上点一格：等价于「选中这片场地 + 预约这个时段」 */
 function pick(court, slot) {
+  if (!venue.value?.is_active) {
+    ElMessage.warning('该场馆已停用，暂不可预约')
+    return
+  }
   if (isBooked(court, slot)) return
   selectedCourt.value = court
   handleBook(slot)
@@ -322,6 +364,9 @@ async function fetchVenue() {
   try {
     const res = await venueApi.detail(route.params.id)
     venue.value = res
+    // 默认选中今天并拉取占用，省掉一步"先选日期"
+    bookDate.value = formatDate(0)
+    fetchBookings()
   } catch {
     ElMessage.error('获取场馆信息失败')
   } finally {
@@ -335,8 +380,12 @@ async function fetchBookings() {
   try {
     const res = await venueApi.availability(venue.value.id, { date: bookDate.value })
     bookedSlots.value = res.occupied || []
+    bookedDate.value = bookDate.value
   } catch {
-    bookedSlots.value = []
+    // 刷新失败保留旧数据（避免棋盘突然全绿误导下单）；
+    // 只有旧数据不属于当前日期时才清空，防止跨日期污染
+    if (bookedDate.value !== bookDate.value) bookedSlots.value = []
+    ElMessage.warning('占用状态刷新失败，请稍后重试')
   } finally {
     bookingLoading.value = false
   }
@@ -358,20 +407,24 @@ async function handleBook(slot) {
     return
   }
   try {
-    await ElMessageBox.confirm(
-      '确认预约「' +
-        venue.value.name +
-        ' - ' +
-        selectedCourt.value.name +
-        '」\n日期: ' +
-        date +
-        '\n时段: ' +
-        slot.display +
-        '\n金额: ¥' +
-        memberPrice(slot),
-      '预约确认',
-      { confirmButtonText: '确认', cancelButtonText: '取消', type: 'info' }
-    )
+    await ElMessageBox({
+      title: '预约确认',
+      message: h('div', { class: 'book-confirm' }, [
+        h('div', { class: 'book-confirm-row' }, [
+          h('span', '场地'),
+          h('strong', `${venue.value.name} · ${selectedCourt.value.name}`),
+        ]),
+        h('div', { class: 'book-confirm-row' }, [h('span', '日期'), h('strong', { class: 'mono' }, date)]),
+        h('div', { class: 'book-confirm-row' }, [h('span', '时段'), h('strong', { class: 'mono' }, slot.display)]),
+        h('div', { class: 'book-confirm-row book-confirm-amount' }, [
+          h('span', '金额'),
+          h('strong', { class: 'mono' }, `¥${memberPrice(slot)}`),
+        ]),
+      ]),
+      confirmButtonText: '确认下单',
+      cancelButtonText: '取消',
+      type: 'info',
+    })
   } catch {
     return
   }
@@ -381,6 +434,7 @@ async function handleBook(slot) {
       date: date,
       time_slot: slot.id,
     })
+    stayAfterPay.value = false
     payForm.value = {
       bookingId: booking.id,
       amount: Number(booking.amount || slot.price),
@@ -402,11 +456,13 @@ async function handleBook(slot) {
 }
 
 function handleLaterPay() {
+  stayAfterPay.value = false
   showPayDialog.value = false
 }
 
 function handlePayDialogClose() {
-  router.push('/orders')
+  // 支付成功后留在本页看棋盘刷新；"稍后支付"/右上角关闭才去订单页
+  if (!stayAfterPay.value) router.push('/orders')
 }
 
 async function handlePay() {
@@ -422,6 +478,7 @@ async function handlePay() {
       userStore.setUserInfo(userStore.userInfo)
     }
     ElMessage.success('支付成功')
+    stayAfterPay.value = true
     showPayDialog.value = false
     fetchBookings()
   } catch (e) {
@@ -440,25 +497,25 @@ onMounted(fetchVenue)
   width: 100%;
   max-width: 1180px;
   margin: 0 auto;
-  padding: 22px 24px 80px;
+  padding: var(--sp-6) var(--sp-6) var(--sp-12);
 }
 
 .detail-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
 }
 
 .toolbar-title {
   font-size: var(--fs-12);
-  letter-spacing: 0.1em;
+  letter-spacing: var(--track-caps);
   color: var(--ink-4);
 }
 
 .detail-loading {
-  padding: 26px;
+  padding: var(--sp-7);
 }
 
 /* ---------- 抬头 ---------- */
@@ -468,14 +525,14 @@ onMounted(fetchVenue)
   grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
   gap: 0;
   overflow: hidden;
-  margin-bottom: 18px;
+  margin-bottom: var(--sp-5);
 }
 
 .head-photo {
   position: relative;
   min-height: 190px;
-  background-color: #e3ecf9;
-  background-image: radial-gradient(60% 50% at 50% 50%, rgba(26, 95, 208, 0.1), transparent 72%);
+  background-color: var(--sunken);
+  background-image: radial-gradient(60% 50% at 50% 50%, var(--accent-soft), transparent 72%);
 }
 
 .head-photo img {
@@ -491,26 +548,26 @@ onMounted(fetchVenue)
   inset: 0;
   pointer-events: none;
   mix-blend-mode: multiply;
-  background: linear-gradient(180deg, rgba(20, 44, 96, 0.03) 0%, rgba(16, 32, 64, 0.26) 100%);
+  background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--ink-1) 26%, transparent) 100%);
 }
 
 .head-copy {
-  padding: 26px 28px;
+  padding: var(--sp-7) var(--sp-7);
   min-width: 0;
 }
 
 .head-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--sp-3);
   flex-wrap: wrap;
-  margin-bottom: 22px;
+  margin-bottom: var(--sp-6);
 }
 
 .head-title h1 {
   font-size: clamp(22px, 2.4vw, 30px);
   font-weight: 800;
-  letter-spacing: -0.025em;
+  letter-spacing: var(--track-display);
   color: var(--ink-1);
   margin: 0;
 }
@@ -518,20 +575,20 @@ onMounted(fetchVenue)
 .head-facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 18px 24px;
+  gap: var(--sp-5) var(--sp-6);
 }
 
 .head-facts > div {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--sp-1);
   min-width: 0;
 }
 
 .fact-label {
   font-size: var(--fs-11);
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--track-caps);
   color: var(--ink-4);
 }
 
@@ -546,12 +603,12 @@ onMounted(fetchVenue)
 .detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 18px;
+  gap: var(--sp-5);
   align-items: start;
 }
 
 .board-panel {
-  padding: 22px 24px 26px;
+  padding: var(--sp-6) var(--sp-6) var(--sp-7);
   min-width: 0;
 }
 
@@ -559,9 +616,9 @@ onMounted(fetchVenue)
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
+  gap: var(--sp-5);
   flex-wrap: wrap;
-  padding-bottom: 18px;
+  padding-bottom: var(--sp-5);
   border-bottom: 1px solid var(--border-soft);
 }
 
@@ -573,7 +630,7 @@ onMounted(fetchVenue)
 }
 
 .board-head-left p {
-  margin: 6px 0 0;
+  margin: var(--sp-2) 0 0;
   font-size: var(--fs-12);
   color: var(--ink-3);
 }
@@ -582,12 +639,51 @@ onMounted(fetchVenue)
   width: 190px;
 }
 
+.board-head-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.date-quick {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.quick-chip {
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out), transform var(--dur-1) var(--ease-spring);
+}
+
+.quick-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.quick-chip:active {
+  transform: scale(0.96);
+}
+
+.quick-chip.is-on {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
 .board-legend {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: var(--sp-5);
   flex-wrap: wrap;
-  margin: 16px 0 14px;
+  margin: var(--sp-4) 0 var(--sp-4);
   font-size: var(--fs-12);
   color: var(--ink-3);
 }
@@ -595,24 +691,24 @@ onMounted(fetchVenue)
 .legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-2);
 }
 
 .dot {
   width: 9px;
   height: 9px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   display: inline-block;
 }
 
 .dot--free {
-  background: var(--surface-2);
-  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 .dot--booked {
   background: var(--sunken);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-soft);
 }
 
 .dot--member {
@@ -625,12 +721,28 @@ onMounted(fetchVenue)
   font-weight: 600;
 }
 
+/* ---------- 停用提示 ---------- */
+
+.venue-closed {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-size: var(--fs-13);
+  font-weight: 600;
+}
+
 /* ---------- 棋盘 ---------- */
 
 .board {
   display: grid;
   grid-template-columns: 96px repeat(var(--cols), minmax(0, 1fr));
-  gap: 5px;
+  gap: var(--gap-grid);
   min-width: 0;
 }
 
@@ -649,7 +761,7 @@ onMounted(fetchVenue)
 .board-court {
   color: var(--ink-2);
   font-size: var(--fs-12);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--sunken);
 }
 
@@ -666,14 +778,14 @@ onMounted(fetchVenue)
   align-items: center;
   justify-content: center;
   min-height: var(--tap);
-  padding: 0 4px;
+  padding: 0 var(--sp-1);
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink-1);
   cursor: pointer;
   transition: background-color var(--dur-2) var(--ease-out),
-    border-color var(--dur-2) var(--ease-out), transform var(--dur-1) var(--ease-out);
+    border-color var(--dur-2) var(--ease-out), transform var(--dur-1) var(--ease-spring);
 }
 
 .cell-price {
@@ -683,8 +795,8 @@ onMounted(fetchVenue)
 }
 
 /* 主色只标"可点"：悬停或键盘聚焦时才点亮 */
-.cell:not(.is-booked):hover .cell-price,
-.cell:not(.is-booked):focus-visible .cell-price {
+.cell:not(.is-booked):not(.is-off):hover .cell-price,
+.cell:not(.is-booked):not(.is-off):focus-visible .cell-price {
   color: var(--accent);
 }
 
@@ -694,6 +806,15 @@ onMounted(fetchVenue)
   cursor: not-allowed;
 }
 
+/* 场馆停用：格子可见但不可点 */
+.cell.is-off {
+  cursor: not-allowed;
+}
+
+.cell.is-off .cell-price {
+  color: var(--ink-4);
+}
+
 .cell-state {
   font-size: var(--fs-11);
   font-weight: 600;
@@ -701,15 +822,18 @@ onMounted(fetchVenue)
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .cell:not(.is-booked):hover {
+  .cell:not(.is-booked):not(.is-off):hover {
     background: var(--accent-soft);
     border-color: var(--accent);
     transform: translateY(-1px);
   }
 }
 
-.cell:not(.is-booked):active {
-  transform: translateY(0);
+/* 弹簧按压反馈（第 5 拍）：按下缩一格、松开弹回 */
+.cell:not(.is-booked):not(.is-off):active {
+  transform: scale(0.96);
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
 
 /* 手机版棋盘 */
@@ -721,8 +845,8 @@ onMounted(fetchVenue)
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 54px 20px;
+  gap: var(--sp-3);
+  padding: var(--sp-10) var(--sp-5);
   text-align: center;
   color: var(--ink-3);
 }
@@ -743,7 +867,7 @@ onMounted(fetchVenue)
 .detail-side {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--sp-5);
   min-width: 0;
 }
 
@@ -751,7 +875,7 @@ onMounted(fetchVenue)
   position: relative;
   aspect-ratio: 3 / 2;
   overflow: hidden;
-  background-color: #e3ecf9;
+  background-color: var(--sunken);
 }
 
 .side-photo img {
@@ -762,11 +886,11 @@ onMounted(fetchVenue)
 }
 
 .receipt {
-  padding: 18px 20px 20px;
+  padding: var(--sp-5);
 }
 
 .receipt-title {
-  margin: 0 0 14px;
+  margin: 0 0 var(--sp-4);
   font-size: var(--fs-14);
   font-weight: 800;
   color: var(--accent);
@@ -777,8 +901,8 @@ onMounted(fetchVenue)
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  padding: 7px 0;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
   font-size: var(--fs-13);
   color: var(--ink-3);
 }
@@ -789,7 +913,7 @@ onMounted(fetchVenue)
 }
 
 .receipt-note {
-  margin: 12px 0 0;
+  margin: var(--sp-3) 0 0;
   font-size: var(--fs-12);
   line-height: var(--lh-body);
   color: var(--ink-3);
@@ -798,7 +922,7 @@ onMounted(fetchVenue)
 /* ---------- 支付弹窗 ---------- */
 
 .pay-summary {
-  padding: 16px;
+  padding: var(--sp-4);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--sunken);
@@ -807,9 +931,9 @@ onMounted(fetchVenue)
 .pay-summary-head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-bottom: 14px;
-  margin-bottom: 8px;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-4);
+  margin-bottom: var(--sp-2);
   border-bottom: 1px solid var(--border-soft);
 }
 
@@ -820,7 +944,7 @@ onMounted(fetchVenue)
   width: 38px;
   height: 38px;
   flex: 0 0 38px;
-  border-radius: 11px;
+  border-radius: var(--radius);
   color: var(--accent);
   background: var(--accent-soft);
 }
@@ -841,8 +965,8 @@ onMounted(fetchVenue)
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  padding: 6px 0;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
   font-size: var(--fs-13);
   color: var(--ink-3);
 }
@@ -861,8 +985,8 @@ onMounted(fetchVenue)
 }
 
 .amount-row {
-  padding-top: 12px;
-  margin-top: 8px;
+  padding-top: var(--sp-3);
+  margin-top: var(--sp-2);
   border-top: 1px solid var(--border-soft);
 }
 
@@ -873,7 +997,7 @@ onMounted(fetchVenue)
 }
 
 .pay-methods-title {
-  margin: 20px 0 12px;
+  margin: var(--sp-5) 0 var(--sp-3);
   font-size: var(--fs-13);
   font-weight: 700;
   color: var(--ink-2);
@@ -882,14 +1006,19 @@ onMounted(fetchVenue)
 .pay-methods {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--sp-3);
   width: 100%;
 }
 
 .pay-methods :deep(.el-radio) {
   width: 100%;
   margin-right: 0;
-  height: 44px;
+  height: var(--tap);
+}
+
+.pay-hint {
+  font-size: var(--fs-12);
+  color: var(--ink-4);
 }
 
 /* ---------- 断点 ---------- */
@@ -930,15 +1059,15 @@ onMounted(fetchVenue)
   .board-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--sp-3);
   }
 
   .slot-row {
     display: grid;
     grid-template-columns: 92px minmax(0, 1fr);
     align-items: start;
-    gap: 12px;
-    padding: 10px 0;
+    gap: var(--sp-3);
+    padding: var(--sp-3) 0;
     border-bottom: 1px solid var(--border-soft);
   }
 
@@ -949,27 +1078,28 @@ onMounted(fetchVenue)
   .slot-time {
     font-size: var(--fs-12);
     color: var(--ink-3);
-    padding-top: 10px;
+    padding-top: var(--sp-3);
   }
 
   .slot-courts {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--sp-2);
     min-width: 0;
   }
 
   .court-chip {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    min-height: 40px;
-    padding: 0 12px;
+    gap: var(--sp-2);
+    min-height: var(--tap);
+    padding: 0 var(--sp-3);
     border: 1px solid var(--border);
     border-radius: 999px;
     background: var(--surface);
     cursor: pointer;
-    transition: border-color var(--dur-2) var(--ease-out), background-color var(--dur-2) var(--ease-out);
+    transition: border-color var(--dur-2) var(--ease-out), background-color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-spring);
   }
 
   .court-chip .chip-name {
@@ -994,19 +1124,47 @@ onMounted(fetchVenue)
   .court-chip.is-booked .chip-price {
     color: var(--ink-4);
   }
+
+  .court-chip.is-off {
+    cursor: not-allowed;
+  }
+
+  .court-chip.is-off .chip-name,
+  .court-chip.is-off .chip-price {
+    color: var(--ink-4);
+  }
+
+  /* 弹簧按压反馈（第 5 拍）：触屏按下的即时反馈 */
+  .court-chip:not(.is-booked):not(.is-off):active {
+    transform: scale(0.96);
+  }
 }
 
 @media (max-width: 640px) {
   .venue-detail {
-    padding: 16px 14px 64px;
+    padding: var(--sp-4) var(--sp-4) var(--sp-11);
   }
 
   .board-panel {
-    padding: 18px 16px 20px;
+    padding: var(--sp-5) var(--sp-4) var(--sp-5);
   }
 
   .date-picker {
     width: 100%;
+  }
+
+  .board-head-right {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .date-quick {
+    width: 100%;
+  }
+
+  .quick-chip {
+    flex: 1;
   }
 
   .detail-side {
@@ -1014,7 +1172,40 @@ onMounted(fetchVenue)
   }
 
   .head-copy {
-    padding: 20px 18px 22px;
+    padding: var(--sp-5) var(--sp-5) var(--sp-6);
   }
+}
+</style>
+<style>
+/* 预约确认弹窗的内容区：ElMessageBox 把内容渲染进 body（teleport），
+   scoped 样式管不到它，这里用一层全局样式，全部走设计令牌。 */
+.book-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 240px;
+  font-size: var(--fs-13);
+}
+
+.book-confirm-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.book-confirm-row span {
+  color: var(--ink-3);
+}
+
+.book-confirm-row strong {
+  color: var(--ink-1);
+  font-weight: 700;
+  text-align: right;
+}
+
+.book-confirm-amount strong {
+  font-size: var(--fs-16);
+  color: var(--accent);
 }
 </style>
