@@ -45,6 +45,10 @@ class SpendTests(TestCase):
 
 
 class AuthApiTests(DRFAPITestCase):
+    def setUp(self):
+        # Redis 跨测试运行残留节流计数，每个测试类开始时清空
+        cache.clear()
+
     def test_captcha_required(self):
         r = self.client.post('/api/auth/register/', {
             'phone': '13811112222', 'password': STRONG_PWD, 'password2': STRONG_PWD,

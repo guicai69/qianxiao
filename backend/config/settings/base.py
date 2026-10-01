@@ -187,6 +187,15 @@ CACHES = {
     }
 }
 
+# --- Celery（Windows 用 solo 池；beat 定时清理过期订单）---
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/2')
+CELERY_BEAT_SCHEDULE = {
+    'cancel-expired-pendings': {
+        'task': 'bookings.cancel_expired_pendings',
+        'schedule': 300,  # 每 5 分钟
+    },
+}
+
 # --- 日志 ---
 LOGGING = {
     'version': 1,

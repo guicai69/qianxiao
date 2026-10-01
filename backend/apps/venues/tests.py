@@ -22,6 +22,10 @@ def make_user(phone, role='member', password='123456'):
 class CacheDegradationTests(APITestCase):
     """缓存命中与降级：Redis 挂掉时业务照常直查数据库"""
 
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
     def test_cache_hit_skips_compute(self):
         calls = {'n': 0}
 

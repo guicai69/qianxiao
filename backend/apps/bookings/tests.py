@@ -177,6 +177,18 @@ class ExpiryCommandTests(APITestCase):
         b.refresh_from_db()
         self.assertEqual(b.status, 'cancelled')
 
+    def test_celery_task_cancels_stale_pendings(self):
+        member = make_user('13800000001')
+        _, court, slot = make_venue_court_slot()
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        b = Booking.objects.create(user=member, court=court, date=tomorrow, time_slot=slot, status='pending', amount='100.00')
+        Booking.objects.filter(pk=b.pk).update(created_at=timezone.now() - timedelta(minutes=20))
+        from apps.bookings.tasks import cancel_expired_bookings_task
+        cancelled = cancel_expired_bookings_task.run()
+        self.assertEqual(cancelled, 1)
+        b.refresh_from_db()
+        self.assertEqual(b.status, 'cancelled')
+
 
 class PendingTimeoutTests(APITestCase):
     def test_availability_is_pure_read(self):
