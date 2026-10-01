@@ -2,12 +2,13 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .views import RegisterView, LoginView, ChangePasswordView, UserViewSet
+from .views import RegisterView, LoginView, ChangePasswordView, CaptchaView, UserViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 
 urlpatterns = [
+    path('auth/captcha/', CaptchaView.as_view(), name='auth-captcha'),
     path('auth/register/', RegisterView.as_view(), name='auth-register'),
     path('auth/login/', LoginView.as_view(), name='auth-login'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='auth-refresh'),

@@ -28,8 +28,21 @@
           :prefix-icon="Lock"
           show-password
           autocomplete="new-password"
-          @keyup.enter="handleRegister"
         />
+      </el-form-item>
+      <el-form-item prop="captchaCode">
+        <div class="captcha-row">
+          <el-input
+            v-model="form.captchaCode"
+            placeholder="验证码"
+            maxlength="4"
+            @keyup.enter="handleRegister"
+          />
+          <button type="button" class="captcha-img" aria-label="点击刷新验证码" @click="fetchCaptcha">
+            <span v-if="captchaSvg" v-html="captchaSvg"></span>
+            <span v-else class="captcha-loading mono">点击获取</span>
+          </button>
+        </div>
       </el-form-item>
 
       <el-button type="primary" class="submit-button" :loading="loading" @click="handleRegister">
@@ -46,7 +59,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Iphone, User, Lock, ArrowRight } from '@element-plus/icons-vue'
@@ -56,8 +69,20 @@ import AuthShell from '@/components/brand/AuthShell.vue'
 const router = useRouter()
 const loading = ref(false)
 const formRef = ref(null)
+const captchaSvg = ref('')
 
-const form = reactive({ phone: '', nickname: '', password: '', password2: '' })
+const form = reactive({ phone: '', nickname: '', password: '', password2: '', captchaId: '', captchaCode: '' })
+
+async function fetchCaptcha() {
+  try {
+    const res = await api.get('auth/captcha/')
+    form.captchaId = res.data.captcha_id
+    captchaSvg.value = res.data.svg
+    form.captchaCode = ''
+  } catch {
+    // 错误已由拦截器统一提示
+  }
+}
 
 const validatePassword2 = (_rule, value, callback) => {
   if (value !== form.password) callback(new Error('两次密码不一致'))
@@ -77,6 +102,9 @@ const rules = {
     { required: true, message: '请再次输入密码', trigger: 'blur' },
     { validator: validatePassword2, trigger: 'blur' },
   ],
+  captchaCode: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+  ],
 }
 
 async function handleRegister() {
@@ -90,16 +118,21 @@ async function handleRegister() {
         nickname: form.nickname,
         password: form.password,
         password2: form.password2,
+        captcha_id: form.captchaId,
+        captcha_code: form.captchaCode,
       })
       ElMessage.success('注册成功，请登录')
       router.push('/login')
     } catch {
-      // 错误已由拦截器统一提示
+      // 错误已由拦截器统一提示；验证码失败后刷新一张新的
+      fetchCaptcha()
     } finally {
       loading.value = false
     }
   })
 }
+
+onMounted(fetchCaptcha)
 </script>
 
 <style scoped>
@@ -136,6 +169,39 @@ async function handleRegister() {
   justify-content: center;
   margin-top: 18px;
   font-size: var(--fs-13);
+  color: var(--ink-3);
+}
+
+.captcha-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.captcha-row :deep(.el-input) {
+  flex: 1;
+}
+
+.captcha-img {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--sunken);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.captcha-img :deep(svg) {
+  display: block;
+}
+
+.captcha-loading {
+  font-size: var(--fs-12);
   color: var(--ink-3);
 }
 </style>

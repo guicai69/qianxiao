@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.validators import RegexValidator
 from .models import User
+from apps.common.captcha import verify as verify_captcha
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -16,10 +17,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         label='密码',
     )
     password2 = serializers.CharField(write_only=True, label='确认密码')
+    captcha_id = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    captcha_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ['phone', 'password', 'password2', 'nickname']
+        fields = ['phone', 'password', 'password2', 'nickname', 'captcha_id', 'captcha_code']
 
     def validate_phone(self, value):
         if User.objects.filter(phone=value).exists():
@@ -29,10 +32,14 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({'password2': '两次密码不一致'})
+        if not verify_captcha(attrs.get('captcha_id'), attrs.get('captcha_code')):
+            raise serializers.ValidationError({'captcha_code': '验证码错误或已过期'})
         return attrs
 
     def create(self, validated_data):
         validated_data.pop('password2')
+        validated_data.pop('captcha_id', None)
+        validated_data.pop('captcha_code', None)
         password = validated_data.pop('password')
         user = User(**validated_data)
         user.set_password(password)
@@ -43,10 +50,14 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     phone = serializers.CharField(label='手机号')
     password = serializers.CharField(label='密码', write_only=True)
+    captcha_id = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    captcha_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     def validate(self, attrs):
         phone = attrs.get('phone')
         password = attrs.get('password')
+        if not verify_captcha(attrs.get('captcha_id'), attrs.get('captcha_code')):
+            raise serializers.ValidationError({'captcha_code': '验证码错误或已过期'})
         user = authenticate(request=self.context.get('request'), username=phone, password=password)
         if not user:
             raise serializers.ValidationError('手机号或密码错误')

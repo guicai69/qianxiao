@@ -2,6 +2,7 @@ from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User
@@ -11,13 +12,27 @@ from .serializers import (
     AdminUserCreateSerializer, AdminUserUpdateSerializer,
 )
 from .permissions import IsAdmin, IsAdminOrReception
+from apps.common.captcha import generate
+
+
+class CaptchaView(generics.GenericAPIView):
+    """图形验证码：返回一次性 captcha_id + SVG，注册/登录提交时回传"""
+
+    permission_classes = [AllowAny]
+    serializer_class = LoginSerializer
+
+    def get(self, request):
+        captcha_id, _code, svg = generate()
+        return Response({'code': 200, 'data': {'captcha_id': captcha_id, 'svg': svg}})
 
 
 class RegisterView(generics.CreateAPIView):
-    """用户注册"""
+    """用户注册（图形验证码 + IP 节流防刷）"""
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'register'
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

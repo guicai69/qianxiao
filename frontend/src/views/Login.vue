@@ -20,8 +20,21 @@
           :prefix-icon="Lock"
           show-password
           autocomplete="current-password"
-          @keyup.enter="handleLogin"
         />
+      </el-form-item>
+      <el-form-item prop="captchaCode">
+        <div class="captcha-row">
+          <el-input
+            v-model="form.captchaCode"
+            placeholder="验证码"
+            maxlength="4"
+            @keyup.enter="handleLogin"
+          />
+          <button type="button" class="captcha-img" aria-label="点击刷新验证码" @click="fetchCaptcha">
+            <span v-if="captchaSvg" v-html="captchaSvg"></span>
+            <span v-else class="captcha-loading mono">点击获取</span>
+          </button>
+        </div>
       </el-form-item>
 
       <el-button type="primary" class="submit-button" :loading="loading" @click="handleLogin">
@@ -38,7 +51,7 @@
     <!-- 演示用：答辩现场点一下就把账号填好，不用背手机号 -->
     <div class="demo-hint">
       <div class="demo-head">
-        <span class="caps">演示账号 · 点击填充</span>
+        <span class="caps">演示账号 · 点击填充（验证码看图手动输入）</span>
       </div>
       <button
         v-for="a in demoAccounts"
@@ -55,7 +68,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Iphone, Lock, ArrowRight } from '@element-plus/icons-vue'
@@ -67,8 +80,20 @@ const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
 const formRef = ref(null)
+const captchaSvg = ref('')
 
-const form = reactive({ phone: '', password: '' })
+const form = reactive({ phone: '', password: '', captchaId: '', captchaCode: '' })
+
+async function fetchCaptcha() {
+  try {
+    const res = await api.get('auth/captcha/')
+    form.captchaId = res.data.captcha_id
+    captchaSvg.value = res.data.svg
+    form.captchaCode = ''
+  } catch {
+    // 错误已由拦截器统一提示
+  }
+}
 
 const demoAccounts = [
   { role: '管理员', phone: '13800000000', password: 'admin123' },
@@ -89,6 +114,9 @@ const rules = {
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码至少 6 位', trigger: 'blur' },
   ],
+  captchaCode: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+  ],
 }
 
 async function handleLogin() {
@@ -97,7 +125,12 @@ async function handleLogin() {
     if (!valid) return
     loading.value = true
     try {
-      const res = await api.post('auth/login/', { phone: form.phone, password: form.password })
+      const res = await api.post('auth/login/', {
+        phone: form.phone,
+        password: form.password,
+        captcha_id: form.captchaId,
+        captcha_code: form.captchaCode,
+      })
       const { access, refresh, user } = res.data
       userStore.setToken(access, refresh)
       userStore.setUserInfo(user)
@@ -106,12 +139,15 @@ async function handleLogin() {
       else if (user.role === 'reception') router.push('/reception/dashboard')
       else router.push('/')
     } catch {
-      // 错误已由拦截器统一提示
+      // 错误已由拦截器统一提示；验证码失败后刷新一张新的
+      fetchCaptcha()
     } finally {
       loading.value = false
     }
   })
 }
+
+onMounted(fetchCaptcha)
 </script>
 
 <style scoped>
@@ -189,6 +225,39 @@ async function handleLogin() {
 }
 
 .demo-cred {
+  font-size: var(--fs-12);
+  color: var(--ink-3);
+}
+
+.captcha-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.captcha-row :deep(.el-input) {
+  flex: 1;
+}
+
+.captcha-img {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--sunken);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.captcha-img :deep(svg) {
+  display: block;
+}
+
+.captcha-loading {
   font-size: var(--fs-12);
   color: var(--ink-3);
 }
