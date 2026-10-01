@@ -22,6 +22,8 @@
           <RouterLink to="/venues" class="nav-link" active-class="active">选场馆</RouterLink>
           <RouterLink to="/orders" class="nav-link" active-class="active">我的订单</RouterLink>
           <RouterLink to="/payments" class="nav-link" active-class="active">支付记录</RouterLink>
+          <RouterLink to="/activities" class="nav-link" active-class="active">活动课程</RouterLink>
+          <RouterLink to="/coupons" class="nav-link" active-class="active">优惠券</RouterLink>
           <RouterLink to="/profile" class="nav-link" active-class="active">个人中心</RouterLink>
         </nav>
 

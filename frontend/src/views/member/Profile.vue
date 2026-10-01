@@ -93,6 +93,10 @@
             <dd class="mono accent">¥{{ money(userInfo.balance) }}</dd>
           </div>
           <div class="fact">
+            <dt>会员积分</dt>
+            <dd class="mono">{{ userInfo.points || 0 }}</dd>
+          </div>
+          <div class="fact">
             <dt>注册时间</dt>
             <dd class="mono">{{ joinedAt }}</dd>
           </div>
@@ -108,6 +112,7 @@
           <el-button type="primary" @click="rechargeDialog = true">
             <el-icon class="el-icon--left"><Wallet /></el-icon>余额充值
           </el-button>
+          <el-button @click="feedbackDialog = true">意见反馈</el-button>
         </div>
       </section>
     </div>
@@ -183,6 +188,21 @@
         <el-button type="primary" :loading="recharging" @click="handleRecharge">确认充值</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="feedbackDialog" title="意见反馈" width="420px" class="narrow-dialog">
+      <el-input
+        v-model="feedbackForm.content"
+        type="textarea"
+        :rows="4"
+        maxlength="300"
+        show-word-limit
+        placeholder="场馆、时段、服务或系统功能上的建议"
+      />
+      <template #footer>
+        <el-button @click="feedbackDialog = false">取消</el-button>
+        <el-button type="primary" :loading="sendingFeedback" @click="submitFeedback">提交</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -192,6 +212,7 @@ import { ElMessage } from "element-plus"
 import { User, Lock, Wallet } from "@element-plus/icons-vue"
 import api from "@/api"
 import { paymentApi } from "@/api/payments"
+import { feedbackApi } from "@/api/reviews"
 import { getRechargeBonus, RECHARGE_BONUS_TIERS, loadBonusTiers } from "@/utils/recharge"
 import { money, roleLabel, levelLabel, discountText as discountTextOf } from "@/utils/format"
 import { useUserStore } from "@/store"
@@ -202,12 +223,15 @@ const userInfo = userStore.userInfo || {}
 const editDialog = ref(false)
 const pwdDialog = ref(false)
 const rechargeDialog = ref(false)
+const feedbackDialog = ref(false)
 const recharging = ref(false)
+const sendingFeedback = ref(false)
 const saving = ref(false)
 const pwdRef = ref(null)
 
 const editForm = reactive({ nickname: userInfo.nickname || "" })
 const rechargeForm = reactive({ amount: 100, method: "wechat" })
+const feedbackForm = reactive({ content: "" })
 
 const pwdForm = reactive({ old_password: "", new_password: "", new_password2: "" })
 const validatePwd2 = (_r, v, cb) =>
@@ -312,6 +336,24 @@ async function handleRecharge() {
     ElMessage.error("充值失败")
   } finally {
     recharging.value = false
+  }
+}
+
+async function submitFeedback() {
+  if (!feedbackForm.content.trim()) {
+    ElMessage.warning("请填写反馈内容")
+    return
+  }
+  sendingFeedback.value = true
+  try {
+    await feedbackApi.create({ content: feedbackForm.content })
+    ElMessage.success("反馈已提交，感谢你的建议")
+    feedbackForm.content = ""
+    feedbackDialog.value = false
+  } catch {
+    // 拦截器已提示
+  } finally {
+    sendingFeedback.value = false
   }
 }
 

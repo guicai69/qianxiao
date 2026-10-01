@@ -68,7 +68,9 @@
                 <el-button type="primary" @click="handlePay(row)">支付</el-button>
                 <el-button @click="handleCancel(row)">取消</el-button>
               </template>
-              <el-button v-else-if="row.status === 'paid' && row.checked_in" disabled>已签到</el-button>
+              <template v-else-if="row.status === 'paid' && row.checked_in">
+                <el-button @click="openReview(row)">评价</el-button>
+              </template>
               <el-button v-else-if="row.status === 'paid'" @click="handleCancel(row)">
                 申请取消
               </el-button>
@@ -136,6 +138,23 @@
         <el-button type="primary" :loading="paying" @click="confirmPay">确认支付</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="showReview" title="订单评价" width="420px" class="narrow-dialog">
+      <div class="review-order mono dim">#{{ reviewForm.bookingId }} · 已签到订单</div>
+      <el-rate v-model="reviewForm.rating" />
+      <el-input
+        v-model="reviewForm.content"
+        type="textarea"
+        :rows="3"
+        maxlength="200"
+        show-word-limit
+        placeholder="场地、时段、服务体验怎么样？"
+      />
+      <template #footer>
+        <el-button @click="showReview = false">取消</el-button>
+        <el-button type="primary" :loading="reviewLoading" @click="submitReview">提交评价</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -145,6 +164,7 @@ import { ElMessage, ElMessageBox } from "element-plus"
 import { Wallet } from "@element-plus/icons-vue"
 import { bookingApi } from "@/api/bookings"
 import { paymentApi } from "@/api/payments"
+import { reviewApi } from "@/api/reviews"
 import { getRechargeBonus, loadBonusTiers } from "@/utils/recharge"
 import { money, discountText, bookingStatusTag as statusTag, bookingStatusLabel as statusLabel } from "@/utils/format"
 import { useUserStore } from "@/store"
@@ -157,10 +177,13 @@ const showRecharge = ref(false)
 const recharging = ref(false)
 const showPay = ref(false)
 const paying = ref(false)
+const showReview = ref(false)
+const reviewLoading = ref(false)
 const activeTab = ref("")
 const query = reactive({ page: 1, page_size: 20 })
 const rechargeForm = reactive({ amount: 100, method: "wechat" })
 const payForm = reactive({ bookingId: null, amount: 0, method: "balance" })
+const reviewForm = reactive({ bookingId: null, rating: 5, content: "" })
 
 const rechargeBonus = computed(() => getRechargeBonus(rechargeForm.amount))
 const rechargeCredit = computed(() => Number(rechargeForm.amount || 0) + rechargeBonus.value)
@@ -238,6 +261,31 @@ async function handleCancel(row) {
     fetchData()
   } catch {
     // canceled or handled
+  }
+}
+
+function openReview(row) {
+  reviewForm.bookingId = row.id
+  reviewForm.rating = 5
+  reviewForm.content = ""
+  showReview.value = true
+}
+
+async function submitReview() {
+  reviewLoading.value = true
+  try {
+    await reviewApi.create({
+      booking: reviewForm.bookingId,
+      rating: reviewForm.rating,
+      content: reviewForm.content,
+    })
+    ElMessage.success("评价成功")
+    showReview.value = false
+    fetchData()
+  } catch {
+    // 拦截器已提示
+  } finally {
+    reviewLoading.value = false
   }
 }
 

@@ -274,6 +274,7 @@ import { Back, OfficeBuilding, Calendar, Wallet, WarningFilled } from '@element-
 import { venueApi } from '@/api/venues'
 import { bookingApi } from '@/api/bookings'
 import { paymentApi } from '@/api/payments'
+import { couponApi } from '@/api/coupons'
 import { useUserStore } from '@/store'
 import { hideBrokenImage } from '@/utils/venueVisual'
 import { discountText } from '@/utils/format'
@@ -291,6 +292,7 @@ const bookedSlots = ref([])
 const bookedDate = ref('')
 const showPayDialog = ref(false)
 const paying = ref(false)
+const coupons = ref([])
 const payForm = ref({
   bookingId: null,
   amount: 0,
@@ -367,11 +369,29 @@ async function fetchVenue() {
     // 默认选中今天并拉取占用，省掉一步"先选日期"
     bookDate.value = formatDate(0)
     fetchBookings()
+    fetchCoupons()
   } catch {
     ElMessage.error('获取场馆信息失败')
   } finally {
     loading.value = false
   }
+}
+
+async function fetchCoupons() {
+  try {
+    const res = await couponApi.my({ status: 'unused' })
+    const now = new Date()
+    coupons.value = (res.data || []).filter((u) => new Date(u.expires_at) > now)
+  } catch {
+    coupons.value = []
+  }
+}
+
+/** 下单自动使用最优可用券（面额最大且满足满减）；券页可查我的券 */
+function bestCoupon(price) {
+  return coupons.value
+    .filter((u) => Number(u.min_amount) <= Number(price))
+    .sort((a, b) => Number(b.amount) - Number(a.amount))[0] || null
 }
 
 async function fetchBookings() {
@@ -407,20 +427,28 @@ async function handleBook(slot) {
     return
   }
   try {
+    const coupon = bestCoupon(memberPrice(slot))
+    const rows = [
+      h('div', { class: 'book-confirm-row' }, [
+        h('span', '场地'),
+        h('strong', `${venue.value.name} · ${selectedCourt.value.name}`),
+      ]),
+      h('div', { class: 'book-confirm-row' }, [h('span', '日期'), h('strong', { class: 'mono' }, date)]),
+      h('div', { class: 'book-confirm-row' }, [h('span', '时段'), h('strong', { class: 'mono' }, slot.display)]),
+    ]
+    if (coupon) {
+      rows.push(h('div', { class: 'book-confirm-row' }, [
+        h('span', '优惠券'),
+        h('strong', { class: 'mono accent' }, `-¥${Number(coupon.amount).toFixed(2)}（自动使用最优券）`),
+      ]))
+    }
+    rows.push(h('div', { class: 'book-confirm-row book-confirm-amount' }, [
+      h('span', '金额'),
+      h('strong', { class: 'mono' }, `¥${memberPrice(slot)}${coupon ? '（以订单实付为准）' : ''}`),
+    ]))
     await ElMessageBox({
       title: '预约确认',
-      message: h('div', { class: 'book-confirm' }, [
-        h('div', { class: 'book-confirm-row' }, [
-          h('span', '场地'),
-          h('strong', `${venue.value.name} · ${selectedCourt.value.name}`),
-        ]),
-        h('div', { class: 'book-confirm-row' }, [h('span', '日期'), h('strong', { class: 'mono' }, date)]),
-        h('div', { class: 'book-confirm-row' }, [h('span', '时段'), h('strong', { class: 'mono' }, slot.display)]),
-        h('div', { class: 'book-confirm-row book-confirm-amount' }, [
-          h('span', '金额'),
-          h('strong', { class: 'mono' }, `¥${memberPrice(slot)}`),
-        ]),
-      ]),
+      message: h('div', { class: 'book-confirm' }, rows),
       confirmButtonText: '确认下单',
       cancelButtonText: '取消',
       type: 'info',
@@ -429,11 +457,14 @@ async function handleBook(slot) {
     return
   }
   try {
-    const booking = await bookingApi.create({
+    const payload = {
       court: courtId,
       date: date,
       time_slot: slot.id,
-    })
+    }
+    const coupon = bestCoupon(memberPrice(slot))
+    if (coupon) payload.user_coupon_id = coupon.id
+    const booking = await bookingApi.create(payload)
     stayAfterPay.value = false
     payForm.value = {
       bookingId: booking.id,

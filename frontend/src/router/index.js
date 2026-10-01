@@ -45,6 +45,8 @@ const routes = [
       { path: 'venues/:id', component: () => import('@/views/member/VenueDetail.vue'), meta: { title: '场馆详情', auth: true } },
       { path: 'orders', component: () => import('@/views/member/MemberOrders.vue'), meta: { title: '我的订单', auth: true } },
       { path: 'payments', component: () => import('@/views/member/PaymentHistory.vue'), meta: { title: '支付记录', auth: true } },
+      { path: 'activities', component: () => import('@/views/member/Activities.vue'), meta: { title: '活动课程', auth: true } },
+      { path: 'coupons', component: () => import('@/views/member/Coupons.vue'), meta: { title: '优惠券', auth: true } },
     ],
   },
   // Auth

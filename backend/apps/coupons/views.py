@@ -25,9 +25,16 @@ class CouponViewSet(viewsets.ModelViewSet):
     serializer_class = CouponSerializer
 
     def get_permissions(self):
-        if self.action in ('list', 'create', 'destroy'):
+        if self.action in ('create', 'destroy'):
             return [IsAdmin()]
         return [IsAuthenticated()]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # 会员看到的是"可领取"模板；管理员看到全部
+        if self.action == 'list' and self.request.user.role != 'admin':
+            qs = qs.filter(is_active=True, expires_at__gt=timezone.now())
+        return qs
 
     @transaction.atomic
     @action(detail=True, methods=['post'])

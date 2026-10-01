@@ -5,6 +5,8 @@ import { createPinia, setActivePinia } from 'pinia'
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { id: '1' } }),
   useRouter: () => ({ push: vi.fn() }),
+  createRouter: vi.fn(() => ({ beforeEach: vi.fn(), afterEach: vi.fn(), onError: vi.fn() })),
+  createWebHistory: vi.fn(() => ({})),
 }))
 
 vi.mock('@/api/venues', () => ({
