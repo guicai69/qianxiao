@@ -18,6 +18,7 @@ from .serializers import (
     BookingCreateSerializer,
 )
 from .utils import cancel_expired_pendings, FREE_CANCEL_WINDOW, CANCEL_FEE_RATE
+from apps.common.cache import invalidate
 from apps.payments.models import Payment
 from apps.users.permissions import IsAdminOrReception
 from apps.venues.models import Court
@@ -136,6 +137,7 @@ class BookingViewSet(viewsets.ModelViewSet):
             user_coupon=user_coupon,
             coupon_amount=coupon_amount,
         )
+        invalidate(f'availability:{court.venue_id}:{date.isoformat()}')
 
     @action(detail=True, methods=['post'])
     @transaction.atomic
@@ -197,6 +199,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking.status = 'cancelled'
         booking.fee_amount = fee_amount
         booking.save()
+        invalidate(f'availability:{booking.court.venue_id}:{booking.date.isoformat()}')
 
         # 退款后消费减少，重算会员等级（手续费保留在累计消费中）
         if was_paid:

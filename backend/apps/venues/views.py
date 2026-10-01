@@ -11,6 +11,7 @@ from django.db import IntegrityError
 
 from .models import Venue, Court, TimeSlot
 from apps.bookings.models import Booking
+from apps.common.cache import cache_or_compute
 from .serializers import (
     VenueListSerializer, VenuePublicSerializer, VenueDetailSerializer,
     VenueCreateSerializer, VenueUpdateSerializer,
@@ -119,12 +120,18 @@ class VenueViewSet(ProtectedDeleteMixin, IntegrityErrorCreateMixin, viewsets.Mod
         "登录后才能查可预约时段"这条边界。权限在 get_permissions() 里登记。
         """
         self.throttle_scope = 'venue-public'
-        qs = (Venue.objects.filter(is_active=True)
-              .annotate(court_count=Count('courts')).order_by('id'))
-        page = self.paginate_queryset(qs)
+
+        def compute():
+            qs = (Venue.objects.filter(is_active=True)
+                  .annotate(court_count=Count('courts')).order_by('id'))
+            return VenuePublicSerializer(qs, many=True).data
+
+        # 场馆只有个位数，整单缓存 5 分钟；分页在缓存后的列表上做
+        data = cache_or_compute('venue-public-all', 300, compute)
+        page = self.paginate_queryset(data)
         if page is not None:
-            return self.get_paginated_response(VenuePublicSerializer(page, many=True).data)
-        return Response(VenuePublicSerializer(qs, many=True).data)
+            return self.get_paginated_response(page)
+        return Response(data)
 
     @action(detail=True, methods=['get'])
     def availability(self, request, pk=None):
@@ -138,14 +145,18 @@ class VenueViewSet(ProtectedDeleteMixin, IntegrityErrorCreateMixin, viewsets.Mod
         except ValueError:
             return Response({'detail': 'date 参数格式错误'}, status=400)
 
-        # 纯读接口：过期未支付订单由定时任务 cancel_expired_bookings 清理
-        qs = Booking.objects.filter(
-            court__venue=venue, court__is_active=True, date=bdate,
-        ).exclude(status='cancelled')
-        occupied = [
-            {'court_id': b.court_id, 'time_slot_id': b.time_slot_id}
-            for b in qs
-        ]
+        # 纯读接口：过期未支付订单由定时任务 cancel_expired_bookings 清理。
+        # 占用列表缓存 30 秒，下单/支付/取消时主动失效
+        def compute():
+            qs = Booking.objects.filter(
+                court__venue=venue, court__is_active=True, date=bdate,
+            ).exclude(status='cancelled')
+            return [
+                {'court_id': b.court_id, 'time_slot_id': b.time_slot_id}
+                for b in qs
+            ]
+
+        occupied = cache_or_compute(f'availability:{venue.id}:{date_str}', 30, compute)
         return Response({'date': date_str, 'occupied': occupied})
 
 

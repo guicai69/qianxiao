@@ -176,6 +176,17 @@ REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {
     'register': '5/hour',       # 注册防刷（IP 维度）
 }
 
+# --- 缓存（Redis，不可用时业务层自动降级直查数据库）---
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.environ.get('DJANGO_REDIS_URL', 'redis://127.0.0.1:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+    }
+}
+
 # --- 日志 ---
 LOGGING = {
     'version': 1,

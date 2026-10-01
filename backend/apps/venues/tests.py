@@ -1,10 +1,12 @@
 from datetime import timedelta
+from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from apps.bookings.models import Booking
+from apps.common.cache import cache_or_compute
 from apps.venues.models import Venue, Court, TimeSlot
 
 User = get_user_model()
@@ -15,6 +17,35 @@ def make_user(phone, role='member', password='123456'):
     u.set_password(password)
     u.save()
     return u
+
+
+class CacheDegradationTests(APITestCase):
+    """缓存命中与降级：Redis 挂掉时业务照常直查数据库"""
+
+    def test_cache_hit_skips_compute(self):
+        calls = {'n': 0}
+
+        def compute():
+            calls['n'] += 1
+            return ['x']
+
+        first = cache_or_compute('deg-test-hit', 60, compute)
+        second = cache_or_compute('deg-test-hit', 60, compute)
+        self.assertEqual(first, ['x'])
+        self.assertEqual(second, ['x'])
+        self.assertEqual(calls['n'], 1)
+
+    def test_cache_failure_falls_back_to_compute(self):
+        calls = {'n': 0}
+
+        def compute():
+            calls['n'] += 1
+            return ['y']
+
+        with mock.patch('apps.common.cache.cache.get', side_effect=ConnectionError('redis down')):
+            value = cache_or_compute('deg-test-fail', 60, compute)
+        self.assertEqual(value, ['y'])
+        self.assertEqual(calls['n'], 1)
 
 
 class AvailabilityTests(APITestCase):

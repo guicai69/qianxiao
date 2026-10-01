@@ -19,6 +19,7 @@ from apps.users.permissions import IsAdminOrReception
 from apps.users.models import User
 from apps.bookings.models import Booking
 from apps.bookings.utils import PENDING_TIMEOUT_MINUTES
+from apps.common.cache import invalidate
 
 # 充值赠送档位：充满 threshold 送 gift（取最高档）
 RECHARGE_BONUS_TIERS = [
@@ -177,6 +178,7 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
 
         booking.status = 'paid'
         booking.save()
+        invalidate(f'availability:{booking.court.venue_id}:{booking.date.isoformat()}')
 
         payment = Payment.objects.create(
             user=user, booking=booking, type=Payment.TYPE_BOOKING,
@@ -232,6 +234,7 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
 
         booking.status = 'paid'
         booking.save()
+        invalidate(f'availability:{booking.court.venue_id}:{booking.date.isoformat()}')
 
         payment = Payment.objects.create(
             user=booking.user, booking=booking, type=Payment.TYPE_BOOKING,

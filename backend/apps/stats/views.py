@@ -10,6 +10,7 @@ from apps.bookings.models import Booking
 from apps.payments.models import Payment
 from apps.users.models import User
 from apps.users.permissions import IsAdminOrReception
+from apps.common.cache import cache_or_compute
 
 
 class StatsViewSet(viewsets.ViewSet):
@@ -17,26 +18,31 @@ class StatsViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["get"])
     def overview(self, request):
-        today = timezone.localdate()
-        today_bookings = Booking.objects.filter(date=today)
-        today_revenue_agg = today_bookings.filter(status="paid").aggregate(t=Sum("amount"))["t"] or 0
-        total_revenue_agg = Booking.objects.filter(status="paid").aggregate(t=Sum("amount"))["t"] or 0
-        total_recharge = Payment.objects.filter(type=Payment.TYPE_RECHARGE, status=Payment.STATUS_SUCCESS).aggregate(s=Sum("amount"))["s"] or 0
-        total_bonus = Payment.objects.filter(type=Payment.TYPE_RECHARGE, status=Payment.STATUS_SUCCESS).aggregate(s=Sum("bonus"))["s"] or 0
-        total_refund = Payment.objects.filter(type=Payment.TYPE_REFUND, status=Payment.STATUS_SUCCESS).aggregate(s=Sum("amount"))["s"] or 0
-        return Response({
-            "total_venues": Venue.objects.count(),
-            "total_courts": Court.objects.count(),
-            "total_members": User.objects.filter(role="member").count(),
-            "today_bookings": today_bookings.count(),
-            "today_pending": today_bookings.filter(status="pending").count(),
-            "today_paid": today_bookings.filter(status="paid").count(),
-            "today_revenue": float(today_revenue_agg),
-            "total_revenue": float(total_revenue_agg),
-            "total_recharge": float(total_recharge),
-            "total_bonus": float(total_bonus),
-            "total_refund": float(total_refund),
-        })
+        def compute():
+            today = timezone.localdate()
+            today_bookings = Booking.objects.filter(date=today)
+            today_revenue_agg = today_bookings.filter(status="paid").aggregate(t=Sum("amount"))["t"] or 0
+            total_revenue_agg = Booking.objects.filter(status="paid").aggregate(t=Sum("amount"))["t"] or 0
+            total_recharge = Payment.objects.filter(type=Payment.TYPE_RECHARGE, status=Payment.STATUS_SUCCESS).aggregate(s=Sum("amount"))["s"] or 0
+            total_bonus = Payment.objects.filter(type=Payment.TYPE_RECHARGE, status=Payment.STATUS_SUCCESS).aggregate(s=Sum("bonus"))["s"] or 0
+            total_refund = Payment.objects.filter(type=Payment.TYPE_REFUND, status=Payment.STATUS_SUCCESS).aggregate(s=Sum("amount"))["s"] or 0
+            return {
+                "total_venues": Venue.objects.count(),
+                "total_courts": Court.objects.count(),
+                "total_members": User.objects.filter(role="member").count(),
+                "today_bookings": today_bookings.count(),
+                "today_pending": today_bookings.filter(status="pending").count(),
+                "today_paid": today_bookings.filter(status="paid").count(),
+                "today_revenue": float(today_revenue_agg),
+                "total_revenue": float(total_revenue_agg),
+                "total_recharge": float(total_recharge),
+                "total_bonus": float(total_bonus),
+                "total_refund": float(total_refund),
+            }
+
+        # 看板 5 秒轮询，缓存 60 秒避免每轮打库
+        data = cache_or_compute('stats-overview', 60, compute)
+        return Response(data)
 
     @action(detail=False, methods=["get"])
     def revenue_trend(self, request):
