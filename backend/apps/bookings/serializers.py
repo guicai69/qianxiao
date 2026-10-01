@@ -13,7 +13,7 @@ class BookingListSerializer(serializers.ModelSerializer):
         model = Booking
         fields = ['id', 'user', 'user_phone', 'user_nickname', 'court', 'court_name',
                   'venue_name', 'date', 'time_slot', 'time_slot_display',
-                  'amount', 'original_amount', 'discount_rate', 'status',
+                  'amount', 'original_amount', 'discount_rate', 'coupon_amount', 'status',
                   'checked_in', 'checked_in_at', 'created_at']
 
 
@@ -31,9 +31,11 @@ class BookingDetailSerializer(serializers.ModelSerializer):
 
 
 class BookingCreateSerializer(serializers.ModelSerializer):
+    user_coupon_id = serializers.IntegerField(required=False, write_only=True)
+
     class Meta:
         model = Booking
-        fields = ['court', 'date', 'time_slot']
+        fields = ['court', 'date', 'time_slot', 'user_coupon_id']
 
     def validate(self, attrs):
         court = attrs['court']

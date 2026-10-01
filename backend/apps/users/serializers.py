@@ -74,7 +74,7 @@ class UserInfoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'phone', 'nickname', 'role', 'level', 'balance',
+        fields = ['id', 'phone', 'nickname', 'role', 'level', 'balance', 'points',
                   'discount_rate', 'total_spend', 'date_joined', 'last_login', 'is_active']
 
     def get_discount_rate(self, obj):

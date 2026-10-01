@@ -42,6 +42,7 @@ class User(AbstractUser):
     role = models.CharField('角色', max_length=20, choices=ROLE_CHOICES, default=ROLE_MEMBER)
     level = models.CharField('会员等级', max_length=20, choices=LEVEL_CHOICES, default=LEVEL_NORMAL)
     balance = models.DecimalField('余额', max_digits=10, decimal_places=2, default=0)
+    points = models.PositiveIntegerField('积分', default=0)
 
     is_blacklisted = models.BooleanField('拉黑', default=False)
 

@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'apps.payments',
     'apps.stats',
     'apps.announcements',
+    'apps.coupons',
 ]
 
 MIDDLEWARE = [

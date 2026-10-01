@@ -105,7 +105,8 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
 
         bonus = get_recharge_bonus(amount)
         user.balance += amount + bonus
-        user.save(update_fields=['balance'])
+        user.points += int(amount)
+        user.save(update_fields=['balance', 'points'])
 
         # Create payment record（amount 为充值本金，bonus 为赠送）
         payment = Payment.objects.create(
@@ -149,11 +150,30 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
         # 锁用户行再读余额，防止两笔订单并发支付同时通过余额检查
         user = User.objects.select_for_update().get(pk=user.pk)
 
+        # 核销优惠券（行锁防两张订单同时用同一张券）
+        if booking.user_coupon_id:
+            from apps.coupons.models import UserCoupon
+            try:
+                uc = UserCoupon.objects.select_for_update().get(
+                    pk=booking.user_coupon_id, user=user,
+                )
+            except UserCoupon.DoesNotExist:
+                return Response({'code': 400, 'message': '优惠券不存在'}, status=400)
+            if uc.status != 'unused' or uc.expires_at <= timezone.now():
+                return Response({'code': 400, 'message': '优惠券已使用或已过期'}, status=400)
+            uc.status = 'used'
+            uc.used_at = timezone.now()
+            uc.save(update_fields=['status', 'used_at'])
+
         if method == 'balance':
             if user.balance < booking.amount:
                 return Response({'code': 400, 'message': '余额不足，当前余额：¥' + str(user.balance)}, status=400)
             user.balance -= booking.amount
             user.save(update_fields=['balance'])
+
+        # 实付 1 元积 1 分（退款不退积分，规则见积分设计）
+        user.points += int(booking.amount)
+        user.save(update_fields=['points'])
 
         booking.status = 'paid'
         booking.save()
@@ -191,6 +211,24 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
         err = check_booking_payable(booking)
         if err is not None:
             return err
+
+        # 核销优惠券 + 返积分（与 pay 同规则）
+        if booking.user_coupon_id:
+            from apps.coupons.models import UserCoupon
+            try:
+                uc = UserCoupon.objects.select_for_update().get(
+                    pk=booking.user_coupon_id, user=booking.user,
+                )
+            except UserCoupon.DoesNotExist:
+                return Response({'code': 400, 'message': '优惠券不存在'}, status=400)
+            if uc.status != 'unused' or uc.expires_at <= timezone.now():
+                return Response({'code': 400, 'message': '优惠券已使用或已过期'}, status=400)
+            uc.status = 'used'
+            uc.used_at = timezone.now()
+            uc.save(update_fields=['status', 'used_at'])
+
+        booking.user.points += int(booking.amount)
+        booking.user.save(update_fields=['points'])
 
         booking.status = 'paid'
         booking.save()

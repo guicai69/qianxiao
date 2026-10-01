@@ -51,6 +51,12 @@ class Booking(models.Model):
     fee_amount = models.DecimalField(
         '手续费', max_digits=10, decimal_places=2, default=0,
     )
+    # 优惠券快照：下单时锁定金额，支付成功时才核销券（取消待支付订单不损失券）
+    user_coupon = models.ForeignKey(
+        'coupons.UserCoupon', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='bookings', verbose_name='使用的优惠券',
+    )
+    coupon_amount = models.DecimalField('券抵扣', max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
     # 占用唯一键：已支付订单 = court-date-slot，数据库级防双写（非已支付为 NULL，MySQL 唯一索引允许多个 NULL）

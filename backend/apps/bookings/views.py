@@ -107,12 +107,34 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         original_amount = time_slot.price
         discount_rate = self.request.user.get_discount_rate()
+
+        # 优惠券：先满减后会员折扣（金额快照到订单，支付成功时才核销券）
+        user_coupon = None
+        coupon_amount = Decimal('0')
+        user_coupon_id = serializer.validated_data.get('user_coupon_id')
+        if user_coupon_id:
+            from apps.coupons.models import UserCoupon
+            try:
+                user_coupon = UserCoupon.objects.select_for_update().get(
+                    pk=user_coupon_id, user=self.request.user, status='unused',
+                    expires_at__gt=timezone.now(),
+                )
+            except UserCoupon.DoesNotExist:
+                raise serializers.ValidationError('优惠券不存在、已使用或已过期')
+            if original_amount < user_coupon.min_amount:
+                raise serializers.ValidationError(
+                    f'未满 ¥{user_coupon.min_amount}，该优惠券不可用')
+            coupon_amount = min(user_coupon.amount, original_amount)
+            original_amount -= coupon_amount
+
         amount = (original_amount * discount_rate).quantize(Decimal('0.01'))
         serializer.save(
             user=self.request.user,
             amount=amount,
-            original_amount=original_amount,
+            original_amount=time_slot.price,
             discount_rate=discount_rate,
+            user_coupon=user_coupon,
+            coupon_amount=coupon_amount,
         )
 
     @action(detail=True, methods=['post'])
