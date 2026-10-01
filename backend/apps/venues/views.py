@@ -11,7 +11,6 @@ from django.db import IntegrityError
 
 from .models import Venue, Court, TimeSlot
 from apps.bookings.models import Booking
-from apps.bookings.utils import cancel_expired_pendings
 from .serializers import (
     VenueListSerializer, VenuePublicSerializer, VenueDetailSerializer,
     VenueCreateSerializer, VenueUpdateSerializer,
@@ -139,9 +138,7 @@ class VenueViewSet(ProtectedDeleteMixin, IntegrityErrorCreateMixin, viewsets.Mod
         except ValueError:
             return Response({'detail': 'date 参数格式错误'}, status=400)
 
-        # 惰性释放过期未支付订单（15 分钟占用设计；pay 侧用行锁串行，此处无竞态）
-        cancel_expired_pendings()
-
+        # 纯读接口：过期未支付订单由定时任务 cancel_expired_bookings 清理
         qs = Booking.objects.filter(
             court__venue=venue, court__is_active=True, date=bdate,
         ).exclude(status='cancelled')

@@ -94,10 +94,12 @@ request.interceptors.response.use(
           break
         default: {
           const data = response.data
-          if (data && typeof data === 'object') {
+          if (data && typeof data === 'object' && data.code && data.message) {
+            ElMessage.error(data.message)
+          } else if (data && typeof data === 'object') {
             const msgs = []
             for (const [key, val] of Object.entries(data)) {
-              if (key === 'detail') continue
+              if (key === 'detail' || key === 'code' || key === 'message') continue
               msgs.push(Array.isArray(val) ? val.join('; ') : val)
             }
             if (msgs.length) {

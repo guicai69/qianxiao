@@ -8,13 +8,10 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-badminton-venue-dev-key-change-in-production'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = ['*']
+# 生产环境通过环境变量覆盖；默认值仅用于本地开发
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-badminton-venue-dev-key-change-in-production')
+DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',')
 
 # ---------------------------------------------------------------------------
 # Application definition
@@ -148,6 +145,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE_QUERY_PARAM': 'page_size',
     'MAX_PAGE_SIZE': 100,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'EXCEPTION_HANDLER': 'apps.common.exceptions.exception_handler',
 }
 
 # --- Simple JWT ---
@@ -160,7 +158,7 @@ SIMPLE_JWT = {
 }
 
 # --- CORS ---
-CORS_ALLOW_ALL_ORIGINS = True  # DEV only — restrict in production
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL', '1') == '1'
 
 # --- drf-spectacular ---
 SPECTACULAR_SETTINGS = {
@@ -172,4 +170,26 @@ SPECTACULAR_SETTINGS = {
 # --- 节流 ---
 REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {
     'venue-public': '100/min',  # 游客场馆清单
+    'register': '5/hour',       # 注册防刷（IP 维度）
+}
+
+# --- 日志 ---
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {'format': '[{asctime}] {levelname} {name} {message}', 'style': '{'},
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'verbose'},
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'backend.log',
+            'maxBytes': 10 * 1024 * 1024,
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+    },
+    'root': {'handlers': ['console', 'file'], 'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO')},
 }

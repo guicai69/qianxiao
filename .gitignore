@@ -48,3 +48,5 @@ frontend-backup/
 # 会话本地产物（不入库）
 .agent-teams/
 learning/
+
+/backend/logs/

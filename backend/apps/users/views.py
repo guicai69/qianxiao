@@ -106,8 +106,9 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response({'code': 200, 'data': serializer.data})
 
     def perform_destroy(self, instance):
-        """硬删除用户"""
-        instance.delete()
+        """停用账号（软删除）：保留订单与支付记录，JWT 认证随即失效"""
+        instance.is_active = False
+        instance.save(update_fields=['is_active'])
 
     @action(detail=True, methods=['post'])
     def blacklist(self, request, pk=None):

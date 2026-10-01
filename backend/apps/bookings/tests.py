@@ -179,7 +179,7 @@ class ExpiryCommandTests(APITestCase):
 
 
 class PendingTimeoutTests(APITestCase):
-    def test_stale_pending_is_freed(self):
+    def test_availability_is_pure_read(self):
         member = make_user('13800000001')
         member2 = make_user('13800000002')
         venue, court, slot = make_venue_court_slot()
@@ -189,6 +189,7 @@ class PendingTimeoutTests(APITestCase):
         self.client.force_authenticate(user=member2)
         r = self.client.get(f'/api/venues/{venue.id}/availability/', {'date': tomorrow.isoformat()})
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.data['occupied'], [])
+        # GET 无写副作用：过期清理交给 cancel_expired_bookings 定时任务
         b.refresh_from_db()
-        self.assertEqual(b.status, 'cancelled')
+        self.assertEqual(b.status, 'pending')
+        self.assertEqual(r.data['occupied'], [{'court_id': court.id, 'time_slot_id': slot.id}])
