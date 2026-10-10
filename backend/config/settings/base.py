@@ -197,6 +197,8 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # --- 日志 ---
+# 确保 logs 目录存在（RotatingFileHandler 需要；打包/新环境可能没有该目录）
+(BASE_DIR / 'logs').mkdir(parents=True, exist_ok=True)
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
