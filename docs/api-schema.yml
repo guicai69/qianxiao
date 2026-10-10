@@ -1,0 +1,4482 @@
+openapi: 3.0.3
+info:
+  title: 羽毛球馆管理系统 API
+  version: 1.0.0
+  description: Badminton Venue Management System REST API
+paths:
+  /api/activities/:
+    get:
+      operationId: activities_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - activities
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedActivityList'
+          description: ''
+    post:
+      operationId: activities_create
+      tags:
+      - activities
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Activity'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Activity'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Activity'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+          description: ''
+  /api/activities/{id}/:
+    get:
+      operationId: activities_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 活动 的 唯一整数值。
+        required: true
+      tags:
+      - activities
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+          description: ''
+    put:
+      operationId: activities_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 活动 的 唯一整数值。
+        required: true
+      tags:
+      - activities
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Activity'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Activity'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Activity'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+          description: ''
+    patch:
+      operationId: activities_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 活动 的 唯一整数值。
+        required: true
+      tags:
+      - activities
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedActivity'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedActivity'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedActivity'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+          description: ''
+    delete:
+      operationId: activities_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 活动 的 唯一整数值。
+        required: true
+      tags:
+      - activities
+      responses:
+        '204':
+          description: No response body
+  /api/activities/{id}/cancel/:
+    post:
+      operationId: activities_cancel_create
+      description: 取消报名，释放名额
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 活动 的 唯一整数值。
+        required: true
+      tags:
+      - activities
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Activity'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Activity'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Activity'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+          description: ''
+  /api/activities/{id}/register/:
+    post:
+      operationId: activities_register_create
+      description: 报名：行锁扣名额；取消后可重新报名
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 活动 的 唯一整数值。
+        required: true
+      tags:
+      - activities
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Activity'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Activity'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Activity'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+          description: ''
+  /api/activities/{id}/registrations/:
+    get:
+      operationId: activities_registrations_retrieve
+      description: 报名名单（管理员/前台）
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 活动 的 唯一整数值。
+        required: true
+      tags:
+      - activities
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+          description: ''
+  /api/activities/my/:
+    get:
+      operationId: activities_my_retrieve
+      tags:
+      - activities
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+          description: ''
+  /api/announcements/:
+    get:
+      operationId: announcements_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - announcements
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAnnouncementList'
+          description: ''
+    post:
+      operationId: announcements_create
+      tags:
+      - announcements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+          description: ''
+  /api/announcements/{id}/:
+    get:
+      operationId: announcements_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 公告 的 唯一整数值。
+        required: true
+      tags:
+      - announcements
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+          description: ''
+    put:
+      operationId: announcements_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 公告 的 唯一整数值。
+        required: true
+      tags:
+      - announcements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+          description: ''
+    patch:
+      operationId: announcements_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 公告 的 唯一整数值。
+        required: true
+      tags:
+      - announcements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAnnouncement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAnnouncement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAnnouncement'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+          description: ''
+    delete:
+      operationId: announcements_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 公告 的 唯一整数值。
+        required: true
+      tags:
+      - announcements
+      responses:
+        '204':
+          description: No response body
+  /api/announcements/{id}/toggle_pin/:
+    post:
+      operationId: announcements_toggle_pin_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 公告 的 唯一整数值。
+        required: true
+      tags:
+      - announcements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+          description: ''
+  /api/announcements/{id}/toggle_publish/:
+    post:
+      operationId: announcements_toggle_publish_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 公告 的 唯一整数值。
+        required: true
+      tags:
+      - announcements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+          description: ''
+  /api/auth/captcha/:
+    get:
+      operationId: auth_captcha_retrieve
+      description: 图形验证码：返回一次性 captcha_id + SVG，注册/登录提交时回传
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Login'
+          description: ''
+  /api/auth/change-password/:
+    post:
+      operationId: auth_change_password_create
+      description: 修改密码
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangePassword'
+          description: ''
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: 用户登录 — 返回 JWT token
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Login'
+          description: ''
+  /api/auth/register/:
+    post:
+      operationId: auth_register_create
+      description: 用户注册（图形验证码 + IP 节流防刷）
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Register'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Register'
+          description: ''
+  /api/auth/token/refresh/:
+    post:
+      operationId: auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/bookings/:
+    get:
+      operationId: bookings_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - bookings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBookingListList'
+          description: ''
+    post:
+      operationId: bookings_create
+      tags:
+      - bookings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BookingCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BookingCreate'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingCreate'
+          description: ''
+  /api/bookings/{id}/:
+    get:
+      operationId: bookings_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 预约订单 的 唯一整数值。
+        required: true
+      tags:
+      - bookings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetail'
+          description: ''
+    put:
+      operationId: bookings_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 预约订单 的 唯一整数值。
+        required: true
+      tags:
+      - bookings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BookingDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BookingDetail'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetail'
+          description: ''
+    patch:
+      operationId: bookings_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 预约订单 的 唯一整数值。
+        required: true
+      tags:
+      - bookings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBookingDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBookingDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBookingDetail'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetail'
+          description: ''
+    delete:
+      operationId: bookings_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 预约订单 的 唯一整数值。
+        required: true
+      tags:
+      - bookings
+      responses:
+        '204':
+          description: No response body
+  /api/bookings/{id}/cancel/:
+    post:
+      operationId: bookings_cancel_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 预约订单 的 唯一整数值。
+        required: true
+      tags:
+      - bookings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BookingDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BookingDetail'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetail'
+          description: ''
+  /api/bookings/{id}/check_in/:
+    post:
+      operationId: bookings_check_in_create
+      description: 到店签到核销（仅管理员/前台）
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 预约订单 的 唯一整数值。
+        required: true
+      tags:
+      - bookings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BookingDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BookingDetail'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetail'
+          description: ''
+  /api/bookings/export_csv/:
+    get:
+      operationId: bookings_export_csv_retrieve
+      description: 导出预约订单为 CSV（管理员/前台）
+      tags:
+      - bookings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetail'
+          description: ''
+  /api/bookings/my/:
+    get:
+      operationId: bookings_my_retrieve
+      tags:
+      - bookings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetail'
+          description: ''
+  /api/coupons/:
+    get:
+      operationId: coupons_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - coupons
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCouponList'
+          description: ''
+    post:
+      operationId: coupons_create
+      tags:
+      - coupons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Coupon'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Coupon'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Coupon'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+          description: ''
+  /api/coupons/{id}/:
+    get:
+      operationId: coupons_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 优惠券 的 唯一整数值。
+        required: true
+      tags:
+      - coupons
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+          description: ''
+    put:
+      operationId: coupons_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 优惠券 的 唯一整数值。
+        required: true
+      tags:
+      - coupons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Coupon'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Coupon'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Coupon'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+          description: ''
+    patch:
+      operationId: coupons_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 优惠券 的 唯一整数值。
+        required: true
+      tags:
+      - coupons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCoupon'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCoupon'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCoupon'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+          description: ''
+    delete:
+      operationId: coupons_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 优惠券 的 唯一整数值。
+        required: true
+      tags:
+      - coupons
+      responses:
+        '204':
+          description: No response body
+  /api/coupons/{id}/claim/:
+    post:
+      operationId: coupons_claim_create
+      description: 领取优惠券：行锁扣发行量，每人每券限领一张
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 优惠券 的 唯一整数值。
+        required: true
+      tags:
+      - coupons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Coupon'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Coupon'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Coupon'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+          description: ''
+  /api/coupons/my/:
+    get:
+      operationId: coupons_my_retrieve
+      description: 我的优惠券
+      tags:
+      - coupons
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+          description: ''
+  /api/coupons/redeem/:
+    post:
+      operationId: coupons_redeem_create
+      description: 积分兑换：500 积分换 ¥5 券（30 天有效）
+      tags:
+      - coupons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Coupon'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Coupon'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Coupon'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+          description: ''
+  /api/courts/:
+    get:
+      operationId: courts_list
+      description: courts/time-slots 共用：按 venue 过滤 + 读写权限边界。
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - courts
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCourtListList'
+          description: ''
+    post:
+      operationId: courts_create
+      description: courts/time-slots 共用：按 venue 过滤 + 读写权限边界。
+      tags:
+      - courts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourtCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourtCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourtCreate'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourtCreate'
+          description: ''
+  /api/courts/{id}/:
+    get:
+      operationId: courts_retrieve
+      description: courts/time-slots 共用：按 venue 过滤 + 读写权限边界。
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场地 的 唯一整数值。
+        required: true
+      tags:
+      - courts
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourtDetail'
+          description: ''
+    put:
+      operationId: courts_update
+      description: courts/time-slots 共用：按 venue 过滤 + 读写权限边界。
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场地 的 唯一整数值。
+        required: true
+      tags:
+      - courts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourtUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourtUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourtUpdate'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourtUpdate'
+          description: ''
+    patch:
+      operationId: courts_partial_update
+      description: courts/time-slots 共用：按 venue 过滤 + 读写权限边界。
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场地 的 唯一整数值。
+        required: true
+      tags:
+      - courts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCourtUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCourtUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCourtUpdate'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourtUpdate'
+          description: ''
+    delete:
+      operationId: courts_destroy
+      description: courts/time-slots 共用：按 venue 过滤 + 读写权限边界。
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场地 的 唯一整数值。
+        required: true
+      tags:
+      - courts
+      responses:
+        '204':
+          description: No response body
+  /api/favorites/:
+    get:
+      operationId: favorites_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - favorites
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFavoriteList'
+          description: ''
+    post:
+      operationId: favorites_create
+      tags:
+      - favorites
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Favorite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Favorite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Favorite'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Favorite'
+          description: ''
+  /api/favorites/{id}/:
+    get:
+      operationId: favorites_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场馆收藏 的 唯一整数值。
+        required: true
+      tags:
+      - favorites
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Favorite'
+          description: ''
+    put:
+      operationId: favorites_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场馆收藏 的 唯一整数值。
+        required: true
+      tags:
+      - favorites
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Favorite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Favorite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Favorite'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Favorite'
+          description: ''
+    patch:
+      operationId: favorites_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场馆收藏 的 唯一整数值。
+        required: true
+      tags:
+      - favorites
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedFavorite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedFavorite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedFavorite'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Favorite'
+          description: ''
+    delete:
+      operationId: favorites_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场馆收藏 的 唯一整数值。
+        required: true
+      tags:
+      - favorites
+      responses:
+        '204':
+          description: No response body
+  /api/feedbacks/:
+    get:
+      operationId: feedbacks_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - feedbacks
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFeedbackList'
+          description: ''
+    post:
+      operationId: feedbacks_create
+      tags:
+      - feedbacks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+          description: ''
+  /api/feedbacks/{id}/:
+    get:
+      operationId: feedbacks_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 意见反馈 的 唯一整数值。
+        required: true
+      tags:
+      - feedbacks
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+          description: ''
+    put:
+      operationId: feedbacks_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 意见反馈 的 唯一整数值。
+        required: true
+      tags:
+      - feedbacks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+          description: ''
+    patch:
+      operationId: feedbacks_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 意见反馈 的 唯一整数值。
+        required: true
+      tags:
+      - feedbacks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedFeedback'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedFeedback'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedFeedback'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+          description: ''
+    delete:
+      operationId: feedbacks_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 意见反馈 的 唯一整数值。
+        required: true
+      tags:
+      - feedbacks
+      responses:
+        '204':
+          description: No response body
+  /api/feedbacks/{id}/process/:
+    post:
+      operationId: feedbacks_process_create
+      description: 标记已处理（管理员/前台）
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 意见反馈 的 唯一整数值。
+        required: true
+      tags:
+      - feedbacks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+          description: ''
+  /api/payments/:
+    get:
+      operationId: payments_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - payments
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPaymentListList'
+          description: ''
+  /api/payments/{id}/:
+    get:
+      operationId: payments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 支付记录 的 唯一整数值。
+        required: true
+      tags:
+      - payments
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDetail'
+          description: ''
+  /api/payments/bonus_tiers/:
+    get:
+      operationId: payments_bonus_tiers_retrieve
+      description: 充值赠送档位单一真源：前端展示从这里取，不再与后端双写常量。
+      tags:
+      - payments
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDetail'
+          description: ''
+  /api/payments/confirm_cash/:
+    post:
+      operationId: payments_confirm_cash_create
+      description: 线下现金收款确认（管理员/前台）——按订单金额全额、不可改
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentDetail'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDetail'
+          description: ''
+  /api/payments/export_csv/:
+    get:
+      operationId: payments_export_csv_retrieve
+      description: 导出支付记录为 CSV（管理员/前台）
+      tags:
+      - payments
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDetail'
+          description: ''
+  /api/payments/pay/:
+    post:
+      operationId: payments_pay_create
+      description: Pay for a booking
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentDetail'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDetail'
+          description: ''
+  /api/payments/recharge/:
+    post:
+      operationId: payments_recharge_create
+      description: Recharge balance for current user（支持充值赠送）
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentDetail'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDetail'
+          description: ''
+  /api/reviews/:
+    get:
+      operationId: reviews_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - reviews
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReviewList'
+          description: ''
+    post:
+      operationId: reviews_create
+      tags:
+      - reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewCreate'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCreate'
+          description: ''
+  /api/reviews/{id}/:
+    get:
+      operationId: reviews_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 订单评价 的 唯一整数值。
+        required: true
+      tags:
+      - reviews
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+    put:
+      operationId: reviews_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 订单评价 的 唯一整数值。
+        required: true
+      tags:
+      - reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Review'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Review'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Review'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+    patch:
+      operationId: reviews_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 订单评价 的 唯一整数值。
+        required: true
+      tags:
+      - reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedReview'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedReview'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedReview'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+    delete:
+      operationId: reviews_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 订单评价 的 唯一整数值。
+        required: true
+      tags:
+      - reviews
+      responses:
+        '204':
+          description: No response body
+  /api/reviews/{id}/reply/:
+    post:
+      operationId: reviews_reply_create
+      description: 商家回复（管理员/前台）
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 订单评价 的 唯一整数值。
+        required: true
+      tags:
+      - reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Review'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Review'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Review'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/stats/court_usage/:
+    get:
+      operationId: stats_court_usage_retrieve
+      tags:
+      - stats
+      responses:
+        '200':
+          description: No response body
+  /api/stats/overview/:
+    get:
+      operationId: stats_overview_retrieve
+      tags:
+      - stats
+      responses:
+        '200':
+          description: No response body
+  /api/stats/popular_slots/:
+    get:
+      operationId: stats_popular_slots_retrieve
+      tags:
+      - stats
+      responses:
+        '200':
+          description: No response body
+  /api/stats/revenue_trend/:
+    get:
+      operationId: stats_revenue_trend_retrieve
+      tags:
+      - stats
+      responses:
+        '200':
+          description: No response body
+  /api/time-slots/:
+    get:
+      operationId: time_slots_list
+      description: courts/time-slots 共用：按 venue 过滤 + 读写权限边界。
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - time-slots
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTimeSlotListList'
+          description: ''
+    post:
+      operationId: time_slots_create
+      description: courts/time-slots 共用：按 venue 过滤 + 读写权限边界。
+      tags:
+      - time-slots
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TimeSlotCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TimeSlotCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TimeSlotCreate'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeSlotCreate'
+          description: ''
+  /api/time-slots/{id}/:
+    get:
+      operationId: time_slots_retrieve
+      description: courts/time-slots 共用：按 venue 过滤 + 读写权限边界。
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 时段 的 唯一整数值。
+        required: true
+      tags:
+      - time-slots
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeSlotDetail'
+          description: ''
+    put:
+      operationId: time_slots_update
+      description: courts/time-slots 共用：按 venue 过滤 + 读写权限边界。
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 时段 的 唯一整数值。
+        required: true
+      tags:
+      - time-slots
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TimeSlotUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TimeSlotUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TimeSlotUpdate'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeSlotUpdate'
+          description: ''
+    patch:
+      operationId: time_slots_partial_update
+      description: courts/time-slots 共用：按 venue 过滤 + 读写权限边界。
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 时段 的 唯一整数值。
+        required: true
+      tags:
+      - time-slots
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTimeSlotUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTimeSlotUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTimeSlotUpdate'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeSlotUpdate'
+          description: ''
+    delete:
+      operationId: time_slots_destroy
+      description: courts/time-slots 共用：按 venue 过滤 + 读写权限边界。
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 时段 的 唯一整数值。
+        required: true
+      tags:
+      - time-slots
+      responses:
+        '204':
+          description: No response body
+  /api/users/:
+    get:
+      operationId: users_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - users
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserInfoList'
+          description: ''
+    post:
+      operationId: users_create
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUserCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminUserCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminUserCreate'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserCreate'
+          description: ''
+  /api/users/{id}/:
+    get:
+      operationId: users_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 用户 的 唯一整数值。
+        required: true
+      tags:
+      - users
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+          description: ''
+    put:
+      operationId: users_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 用户 的 唯一整数值。
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUserUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminUserUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminUserUpdate'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserUpdate'
+          description: ''
+    patch:
+      operationId: users_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 用户 的 唯一整数值。
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUserUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUserUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUserUpdate'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserUpdate'
+          description: ''
+    delete:
+      operationId: users_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 用户 的 唯一整数值。
+        required: true
+      tags:
+      - users
+      responses:
+        '204':
+          description: No response body
+  /api/users/{id}/blacklist/:
+    post:
+      operationId: users_blacklist_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 用户 的 唯一整数值。
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInfo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserInfo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserInfo'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+          description: ''
+  /api/users/{id}/unblacklist/:
+    post:
+      operationId: users_unblacklist_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 用户 的 唯一整数值。
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInfo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserInfo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserInfo'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+          description: ''
+  /api/users/me/:
+    get:
+      operationId: users_me_retrieve
+      description: 当前用户个人信息
+      tags:
+      - users
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+          description: ''
+    patch:
+      operationId: users_me_partial_update
+      description: 当前用户个人信息
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserInfo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserInfo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserInfo'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+          description: ''
+  /api/venues/:
+    get:
+      operationId: venues_list
+      description: 有预约订单关联的资源不可删除：把 PROTECT 外键的 ProtectedError 转成 400。
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - venues
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedVenueListList'
+          description: ''
+    post:
+      operationId: venues_create
+      description: 有预约订单关联的资源不可删除：把 PROTECT 外键的 ProtectedError 转成 400。
+      tags:
+      - venues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VenueCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VenueCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VenueCreate'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VenueCreate'
+          description: ''
+  /api/venues/{id}/:
+    get:
+      operationId: venues_retrieve
+      description: 有预约订单关联的资源不可删除：把 PROTECT 外键的 ProtectedError 转成 400。
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场馆 的 唯一整数值。
+        required: true
+      tags:
+      - venues
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VenueDetail'
+          description: ''
+    put:
+      operationId: venues_update
+      description: 有预约订单关联的资源不可删除：把 PROTECT 外键的 ProtectedError 转成 400。
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场馆 的 唯一整数值。
+        required: true
+      tags:
+      - venues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VenueUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VenueUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VenueUpdate'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VenueUpdate'
+          description: ''
+    patch:
+      operationId: venues_partial_update
+      description: 有预约订单关联的资源不可删除：把 PROTECT 外键的 ProtectedError 转成 400。
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场馆 的 唯一整数值。
+        required: true
+      tags:
+      - venues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedVenueUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedVenueUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedVenueUpdate'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VenueUpdate'
+          description: ''
+    delete:
+      operationId: venues_destroy
+      description: 有预约订单关联的资源不可删除：把 PROTECT 外键的 ProtectedError 转成 400。
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场馆 的 唯一整数值。
+        required: true
+      tags:
+      - venues
+      responses:
+        '204':
+          description: No response body
+  /api/venues/{id}/availability/:
+    get:
+      operationId: venues_availability_retrieve
+      description: 返回指定日期被占用的时段（仅 court_id + time_slot_id，不含用户信息）
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 场馆 的 唯一整数值。
+        required: true
+      tags:
+      - venues
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VenueDetail'
+          description: ''
+  /api/venues/public/:
+    get:
+      operationId: venues_public_retrieve
+      description: |-
+        游客可见的场馆清单（给未登录的首页用）。
+
+        只读，只返回场馆基础信息，不含场地、时段与价格明细，也不含联系电话。
+        单独开一个动作而不是放宽 list/retrieve 的权限，是为了保住
+        "登录后才能查可预约时段"这条边界。权限在 get_permissions() 里登记。
+      tags:
+      - venues
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VenueDetail'
+          description: ''
+components:
+  schemas:
+    Activity:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        venue:
+          type: integer
+          title: 场馆
+        venue_name:
+          type: string
+          readOnly: true
+        type:
+          allOf:
+          - $ref: '#/components/schemas/ActivityTypeEnum'
+          title: 类型
+        title:
+          type: string
+          title: 标题
+          maxLength: 100
+        description:
+          type: string
+          title: 说明
+        start_at:
+          type: string
+          format: date-time
+          title: 开始时间
+        end_at:
+          type: string
+          format: date-time
+          title: 结束时间
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 价格
+        capacity:
+          type: integer
+          maximum: 4294967295
+          minimum: 0
+          format: int64
+          title: 名额
+        registered:
+          type: integer
+          maximum: 4294967295
+          minimum: 0
+          format: int64
+          title: 已报名
+        deadline:
+          type: string
+          format: date-time
+          title: 报名截止
+        is_active:
+          type: boolean
+          title: 启用
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+      required:
+      - capacity
+      - created_at
+      - deadline
+      - end_at
+      - id
+      - start_at
+      - title
+      - venue
+      - venue_name
+    ActivityTypeEnum:
+      enum:
+      - match
+      - training
+      - coach
+      type: string
+      description: |-
+        * `match` - 比赛
+        * `training` - 培训
+        * `coach` - 教练课
+    AdminUserCreate:
+      type: object
+      description: 管理员创建用户（可指定角色）
+      properties:
+        phone:
+          type: string
+          title: 手机号
+          maxLength: 11
+        password:
+          type: string
+          writeOnly: true
+          title: 密码
+          minLength: 6
+        nickname:
+          type: string
+          title: 昵称
+          maxLength: 50
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          title: 角色
+        level:
+          allOf:
+          - $ref: '#/components/schemas/LevelEnum'
+          title: 会员等级
+      required:
+      - password
+      - phone
+    AdminUserUpdate:
+      type: object
+      description: 管理员修改用户（角色/等级/状态）
+      properties:
+        nickname:
+          type: string
+          title: 昵称
+          maxLength: 50
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          title: 角色
+        level:
+          allOf:
+          - $ref: '#/components/schemas/LevelEnum'
+          title: 会员等级
+        is_active:
+          type: boolean
+          title: 有效
+          description: 指明用户是否被认为是活跃的。以反选代替删除帐号。
+        is_blacklisted:
+          type: boolean
+          title: 拉黑
+    Announcement:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          title: 标题
+          maxLength: 100
+        content:
+          type: string
+          title: 内容
+        is_published:
+          type: boolean
+          title: 发布
+        is_pinned:
+          type: boolean
+          title: 置顶
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+      required:
+      - content
+      - created_at
+      - id
+      - title
+      - updated_at
+    BookingCreate:
+      type: object
+      properties:
+        court:
+          type: integer
+          title: 场地
+        date:
+          type: string
+          format: date
+          title: 日期
+        time_slot:
+          type: integer
+          title: 时段
+        user_coupon_id:
+          type: integer
+          writeOnly: true
+      required:
+      - court
+      - date
+      - time_slot
+    BookingDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        court_name:
+          type: string
+          readOnly: true
+        venue_name:
+          type: string
+          readOnly: true
+        venue_id:
+          type: integer
+          readOnly: true
+        time_slot_display:
+          type: string
+          readOnly: true
+        user_phone:
+          type: string
+          readOnly: true
+        user_nickname:
+          type: string
+          readOnly: true
+        date:
+          type: string
+          format: date
+          title: 日期
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusF10Enum'
+          title: 状态
+        checked_in:
+          type: boolean
+          title: 已签到
+        checked_in_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: 签到时间
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 金额
+        original_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          title: 原价
+        discount_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          nullable: true
+          title: 折扣率
+        fee_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 手续费
+        coupon_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 券抵扣
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+        user:
+          type: integer
+          title: 用户
+        court:
+          type: integer
+          title: 场地
+        time_slot:
+          type: integer
+          title: 时段
+        user_coupon:
+          type: integer
+          nullable: true
+          title: 使用的优惠券
+      required:
+      - amount
+      - court
+      - court_name
+      - created_at
+      - date
+      - id
+      - time_slot
+      - time_slot_display
+      - updated_at
+      - user
+      - user_nickname
+      - user_phone
+      - venue_id
+      - venue_name
+    BookingList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          title: 用户
+        user_phone:
+          type: string
+          readOnly: true
+        user_nickname:
+          type: string
+          readOnly: true
+        court:
+          type: integer
+          title: 场地
+        court_name:
+          type: string
+          readOnly: true
+        venue_name:
+          type: string
+          readOnly: true
+        date:
+          type: string
+          format: date
+          title: 日期
+        time_slot:
+          type: integer
+          title: 时段
+        time_slot_display:
+          type: string
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 金额
+        original_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          title: 原价
+        discount_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          nullable: true
+          title: 折扣率
+        coupon_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 券抵扣
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusF10Enum'
+          title: 状态
+        checked_in:
+          type: boolean
+          title: 已签到
+        checked_in_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: 签到时间
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+      required:
+      - amount
+      - court
+      - court_name
+      - created_at
+      - date
+      - id
+      - time_slot
+      - time_slot_display
+      - user
+      - user_nickname
+      - user_phone
+      - venue_name
+    ChangePassword:
+      type: object
+      properties:
+        old_password:
+          type: string
+          writeOnly: true
+          title: 旧密码
+        new_password:
+          type: string
+          writeOnly: true
+          title: 新密码
+          minLength: 6
+        new_password2:
+          type: string
+          writeOnly: true
+          title: 确认新密码
+      required:
+      - new_password
+      - new_password2
+      - old_password
+    Coupon:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: 名称
+          maxLength: 50
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 面额
+        min_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 满减阈值
+        total:
+          type: integer
+          maximum: 4294967295
+          minimum: 0
+          format: int64
+          title: 发行量
+        claimed:
+          type: integer
+          maximum: 4294967295
+          minimum: 0
+          format: int64
+          title: 已领取
+        expires_at:
+          type: string
+          format: date-time
+          title: 有效期至
+        is_active:
+          type: boolean
+          title: 启用
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+      required:
+      - amount
+      - created_at
+      - expires_at
+      - id
+      - name
+      - total
+    CourtCreate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        venue:
+          type: integer
+          title: 所属场馆
+        name:
+          type: string
+          title: 场地名称
+          maxLength: 50
+        is_active:
+          type: boolean
+          title: 启用
+      required:
+      - id
+      - name
+      - venue
+    CourtDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        venue:
+          allOf:
+          - $ref: '#/components/schemas/VenueList'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+        name:
+          type: string
+          title: 场地名称
+          maxLength: 50
+        is_active:
+          type: boolean
+          title: 启用
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+      - venue
+    CourtList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        venue:
+          type: integer
+          title: 所属场馆
+        venue_name:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          title: 场地名称
+          maxLength: 50
+        is_active:
+          type: boolean
+          title: 启用
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+      - venue
+      - venue_name
+    CourtUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          title: 场地名称
+          maxLength: 50
+        is_active:
+          type: boolean
+          title: 启用
+      required:
+      - name
+    Favorite:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        venue:
+          type: integer
+          title: 场馆
+        venue_name:
+          type: string
+          readOnly: true
+        venue_address:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 收藏时间
+      required:
+      - created_at
+      - id
+      - venue
+      - venue_address
+      - venue_name
+    Feedback:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+          title: 用户
+        user_phone:
+          type: string
+          readOnly: true
+        content:
+          type: string
+          title: 反馈内容
+        status:
+          allOf:
+          - $ref: '#/components/schemas/FeedbackStatusEnum'
+          readOnly: true
+          title: 状态
+        reply:
+          type: string
+          readOnly: true
+          title: 处理回复
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 提交时间
+        processed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: 处理时间
+      required:
+      - content
+      - created_at
+      - id
+      - processed_at
+      - reply
+      - status
+      - user
+      - user_phone
+    FeedbackStatusEnum:
+      enum:
+      - pending
+      - processed
+      type: string
+      description: |-
+        * `pending` - 待处理
+        * `processed` - 已处理
+    LevelEnum:
+      enum:
+      - normal
+      - silver
+      - gold
+      type: string
+      description: |-
+        * `normal` - 普通会员
+        * `silver` - 银卡会员
+        * `gold` - 金卡会员
+    Login:
+      type: object
+      properties:
+        phone:
+          type: string
+          title: 手机号
+        password:
+          type: string
+          writeOnly: true
+          title: 密码
+        captcha_id:
+          type: string
+          writeOnly: true
+        captcha_code:
+          type: string
+          writeOnly: true
+      required:
+      - password
+      - phone
+    MethodEnum:
+      enum:
+      - balance
+      - wechat
+      - alipay
+      - cash
+      type: string
+      description: |-
+        * `balance` - 余额支付
+        * `wechat` - 微信支付
+        * `alipay` - 支付宝
+        * `cash` - 现金
+    PaginatedActivityList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
+    PaginatedAnnouncementList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Announcement'
+    PaginatedBookingListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingList'
+    PaginatedCouponList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Coupon'
+    PaginatedCourtListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourtList'
+    PaginatedFavoriteList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Favorite'
+    PaginatedFeedbackList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feedback'
+    PaginatedPaymentListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentList'
+    PaginatedReviewList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+    PaginatedTimeSlotListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeSlotList'
+    PaginatedUserInfoList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserInfo'
+    PaginatedVenueListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/VenueList'
+    PatchedActivity:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        venue:
+          type: integer
+          title: 场馆
+        venue_name:
+          type: string
+          readOnly: true
+        type:
+          allOf:
+          - $ref: '#/components/schemas/ActivityTypeEnum'
+          title: 类型
+        title:
+          type: string
+          title: 标题
+          maxLength: 100
+        description:
+          type: string
+          title: 说明
+        start_at:
+          type: string
+          format: date-time
+          title: 开始时间
+        end_at:
+          type: string
+          format: date-time
+          title: 结束时间
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 价格
+        capacity:
+          type: integer
+          maximum: 4294967295
+          minimum: 0
+          format: int64
+          title: 名额
+        registered:
+          type: integer
+          maximum: 4294967295
+          minimum: 0
+          format: int64
+          title: 已报名
+        deadline:
+          type: string
+          format: date-time
+          title: 报名截止
+        is_active:
+          type: boolean
+          title: 启用
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+    PatchedAdminUserUpdate:
+      type: object
+      description: 管理员修改用户（角色/等级/状态）
+      properties:
+        nickname:
+          type: string
+          title: 昵称
+          maxLength: 50
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          title: 角色
+        level:
+          allOf:
+          - $ref: '#/components/schemas/LevelEnum'
+          title: 会员等级
+        is_active:
+          type: boolean
+          title: 有效
+          description: 指明用户是否被认为是活跃的。以反选代替删除帐号。
+        is_blacklisted:
+          type: boolean
+          title: 拉黑
+    PatchedAnnouncement:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          title: 标题
+          maxLength: 100
+        content:
+          type: string
+          title: 内容
+        is_published:
+          type: boolean
+          title: 发布
+        is_pinned:
+          type: boolean
+          title: 置顶
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+    PatchedBookingDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        court_name:
+          type: string
+          readOnly: true
+        venue_name:
+          type: string
+          readOnly: true
+        venue_id:
+          type: integer
+          readOnly: true
+        time_slot_display:
+          type: string
+          readOnly: true
+        user_phone:
+          type: string
+          readOnly: true
+        user_nickname:
+          type: string
+          readOnly: true
+        date:
+          type: string
+          format: date
+          title: 日期
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusF10Enum'
+          title: 状态
+        checked_in:
+          type: boolean
+          title: 已签到
+        checked_in_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: 签到时间
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 金额
+        original_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          title: 原价
+        discount_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          nullable: true
+          title: 折扣率
+        fee_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 手续费
+        coupon_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 券抵扣
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+        user:
+          type: integer
+          title: 用户
+        court:
+          type: integer
+          title: 场地
+        time_slot:
+          type: integer
+          title: 时段
+        user_coupon:
+          type: integer
+          nullable: true
+          title: 使用的优惠券
+    PatchedCoupon:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: 名称
+          maxLength: 50
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 面额
+        min_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 满减阈值
+        total:
+          type: integer
+          maximum: 4294967295
+          minimum: 0
+          format: int64
+          title: 发行量
+        claimed:
+          type: integer
+          maximum: 4294967295
+          minimum: 0
+          format: int64
+          title: 已领取
+        expires_at:
+          type: string
+          format: date-time
+          title: 有效期至
+        is_active:
+          type: boolean
+          title: 启用
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+    PatchedCourtUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          title: 场地名称
+          maxLength: 50
+        is_active:
+          type: boolean
+          title: 启用
+    PatchedFavorite:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        venue:
+          type: integer
+          title: 场馆
+        venue_name:
+          type: string
+          readOnly: true
+        venue_address:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 收藏时间
+    PatchedFeedback:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+          title: 用户
+        user_phone:
+          type: string
+          readOnly: true
+        content:
+          type: string
+          title: 反馈内容
+        status:
+          allOf:
+          - $ref: '#/components/schemas/FeedbackStatusEnum'
+          readOnly: true
+          title: 状态
+        reply:
+          type: string
+          readOnly: true
+          title: 处理回复
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 提交时间
+        processed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: 处理时间
+    PatchedReview:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        booking:
+          type: integer
+          title: 订单
+        user:
+          type: integer
+          title: 用户
+        user_phone:
+          type: string
+          readOnly: true
+        user_nickname:
+          type: string
+          readOnly: true
+        venue_name:
+          type: string
+          readOnly: true
+        court_name:
+          type: string
+          readOnly: true
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: 评分
+        content:
+          type: string
+          title: 评价内容
+        reply:
+          type: string
+          readOnly: true
+          title: 商家回复
+        replied_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: 回复时间
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 评价时间
+    PatchedTimeSlotUpdate:
+      type: object
+      properties:
+        start_time:
+          type: string
+          format: time
+          title: 开始时间
+        end_time:
+          type: string
+          format: time
+          title: 结束时间
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        is_active:
+          type: boolean
+          title: 启用
+    PatchedUserInfo:
+      type: object
+      description: 个人 / 列表信息
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        phone:
+          type: string
+          title: 手机号
+          maxLength: 11
+        nickname:
+          type: string
+          title: 昵称
+          maxLength: 50
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          title: 角色
+        level:
+          allOf:
+          - $ref: '#/components/schemas/LevelEnum'
+          title: 会员等级
+        balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 余额
+        points:
+          type: integer
+          maximum: 4294967295
+          minimum: 0
+          format: int64
+          title: 积分
+        discount_rate:
+          type: string
+          readOnly: true
+        total_spend:
+          type: string
+          readOnly: true
+        date_joined:
+          type: string
+          format: date-time
+          title: 加入日期
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+          title: 上次登录
+        is_active:
+          type: boolean
+          title: 有效
+          description: 指明用户是否被认为是活跃的。以反选代替删除帐号。
+    PatchedVenueUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          title: 场馆名称
+          maxLength: 100
+        address:
+          type: string
+          title: 地址
+          maxLength: 255
+        phone:
+          type: string
+          title: 联系电话
+          maxLength: 20
+        description:
+          type: string
+          title: 描述
+        is_active:
+          type: boolean
+          title: 启用
+    PaymentDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user_phone:
+          type: string
+          readOnly: true
+        user_nickname:
+          type: string
+          readOnly: true
+        type:
+          allOf:
+          - $ref: '#/components/schemas/Type19bEnum'
+          title: 类型
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 金额
+        bonus:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 赠送金额
+        method:
+          allOf:
+          - $ref: '#/components/schemas/MethodEnum'
+          title: 支付方式
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status186Enum'
+          title: 状态
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        user:
+          type: integer
+          title: 用户
+        booking:
+          type: integer
+          nullable: true
+          title: 关联订单
+      required:
+      - amount
+      - created_at
+      - id
+      - user
+      - user_nickname
+      - user_phone
+    PaymentList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          title: 用户
+        user_phone:
+          type: string
+          readOnly: true
+        user_nickname:
+          type: string
+          readOnly: true
+        booking:
+          type: integer
+          nullable: true
+          title: 关联订单
+        booking_date:
+          type: string
+          readOnly: true
+        booking_court:
+          type: string
+          readOnly: true
+        booking_time:
+          type: string
+          readOnly: true
+        type:
+          allOf:
+          - $ref: '#/components/schemas/Type19bEnum'
+          title: 类型
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 金额
+        bonus:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 赠送金额
+        method:
+          allOf:
+          - $ref: '#/components/schemas/MethodEnum'
+          title: 支付方式
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status186Enum'
+          title: 状态
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+      required:
+      - amount
+      - booking_court
+      - booking_date
+      - booking_time
+      - created_at
+      - id
+      - user
+      - user_nickname
+      - user_phone
+    Register:
+      type: object
+      properties:
+        phone:
+          type: string
+          pattern: ^1\d{10}$
+          maxLength: 11
+        password:
+          type: string
+          writeOnly: true
+          title: 密码
+          minLength: 6
+        password2:
+          type: string
+          writeOnly: true
+          title: 确认密码
+        nickname:
+          type: string
+          title: 昵称
+          maxLength: 50
+        captcha_id:
+          type: string
+          writeOnly: true
+        captcha_code:
+          type: string
+          writeOnly: true
+      required:
+      - password
+      - password2
+      - phone
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        booking:
+          type: integer
+          title: 订单
+        user:
+          type: integer
+          title: 用户
+        user_phone:
+          type: string
+          readOnly: true
+        user_nickname:
+          type: string
+          readOnly: true
+        venue_name:
+          type: string
+          readOnly: true
+        court_name:
+          type: string
+          readOnly: true
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: 评分
+        content:
+          type: string
+          title: 评价内容
+        reply:
+          type: string
+          readOnly: true
+          title: 商家回复
+        replied_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: 回复时间
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 评价时间
+      required:
+      - booking
+      - court_name
+      - created_at
+      - id
+      - rating
+      - replied_at
+      - reply
+      - user
+      - user_nickname
+      - user_phone
+      - venue_name
+    ReviewCreate:
+      type: object
+      properties:
+        booking:
+          type: integer
+          title: 订单
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: 评分
+        content:
+          type: string
+          title: 评价内容
+      required:
+      - booking
+      - rating
+    RoleEnum:
+      enum:
+      - admin
+      - reception
+      - member
+      type: string
+      description: |-
+        * `admin` - 管理员
+        * `reception` - 前台
+        * `member` - 会员
+    Status186Enum:
+      enum:
+      - pending
+      - success
+      - failed
+      type: string
+      description: |-
+        * `pending` - 处理中
+        * `success` - 成功
+        * `failed` - 失败
+    StatusF10Enum:
+      enum:
+      - pending
+      - paid
+      - cancelled
+      type: string
+      description: |-
+        * `pending` - 待支付
+        * `paid` - 已支付
+        * `cancelled` - 已取消
+    TimeSlotCreate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        venue:
+          type: integer
+          title: 所属场馆
+        start_time:
+          type: string
+          format: time
+          title: 开始时间
+        end_time:
+          type: string
+          format: time
+          title: 结束时间
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        is_active:
+          type: boolean
+          title: 启用
+      required:
+      - end_time
+      - id
+      - price
+      - start_time
+      - venue
+    TimeSlotDetail:
+      type: object
+      description: 三个时段序列化器共用：按当前用户折扣率算折后价。
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        venue:
+          allOf:
+          - $ref: '#/components/schemas/VenueList'
+          readOnly: true
+        start_time:
+          type: string
+          format: time
+          title: 开始时间
+        end_time:
+          type: string
+          format: time
+          title: 结束时间
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 价格
+        discounted_price:
+          type: string
+          readOnly: true
+        display:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          title: 启用
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+      required:
+      - created_at
+      - discounted_price
+      - display
+      - end_time
+      - id
+      - start_time
+      - updated_at
+      - venue
+    TimeSlotList:
+      type: object
+      description: 三个时段序列化器共用：按当前用户折扣率算折后价。
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        venue:
+          type: integer
+          title: 所属场馆
+        venue_name:
+          type: string
+          readOnly: true
+        start_time:
+          type: string
+          format: time
+          title: 开始时间
+        end_time:
+          type: string
+          format: time
+          title: 结束时间
+        display:
+          type: string
+          readOnly: true
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 价格
+        discounted_price:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          title: 启用
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+      required:
+      - created_at
+      - discounted_price
+      - display
+      - end_time
+      - id
+      - start_time
+      - updated_at
+      - venue
+      - venue_name
+    TimeSlotUpdate:
+      type: object
+      properties:
+        start_time:
+          type: string
+          format: time
+          title: 开始时间
+        end_time:
+          type: string
+          format: time
+          title: 结束时间
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        is_active:
+          type: boolean
+          title: 启用
+      required:
+      - end_time
+      - price
+      - start_time
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    Type19bEnum:
+      enum:
+      - recharge
+      - booking
+      - refund
+      type: string
+      description: |-
+        * `recharge` - 充值
+        * `booking` - 消费
+        * `refund` - 退款
+    UserInfo:
+      type: object
+      description: 个人 / 列表信息
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        phone:
+          type: string
+          title: 手机号
+          maxLength: 11
+        nickname:
+          type: string
+          title: 昵称
+          maxLength: 50
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          title: 角色
+        level:
+          allOf:
+          - $ref: '#/components/schemas/LevelEnum'
+          title: 会员等级
+        balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: 余额
+        points:
+          type: integer
+          maximum: 4294967295
+          minimum: 0
+          format: int64
+          title: 积分
+        discount_rate:
+          type: string
+          readOnly: true
+        total_spend:
+          type: string
+          readOnly: true
+        date_joined:
+          type: string
+          format: date-time
+          title: 加入日期
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+          title: 上次登录
+        is_active:
+          type: boolean
+          title: 有效
+          description: 指明用户是否被认为是活跃的。以反选代替删除帐号。
+      required:
+      - discount_rate
+      - id
+      - phone
+      - total_spend
+    VenueCreate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: 场馆名称
+          maxLength: 100
+        address:
+          type: string
+          title: 地址
+          maxLength: 255
+        phone:
+          type: string
+          title: 联系电话
+          maxLength: 20
+        description:
+          type: string
+          title: 描述
+        is_active:
+          type: boolean
+          title: 启用
+      required:
+      - id
+      - name
+    VenueDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        courts:
+          type: string
+          readOnly: true
+        time_slots:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+        name:
+          type: string
+          title: 场馆名称
+          maxLength: 100
+        address:
+          type: string
+          title: 地址
+          maxLength: 255
+        phone:
+          type: string
+          title: 联系电话
+          maxLength: 20
+        description:
+          type: string
+          title: 描述
+        is_active:
+          type: boolean
+          title: 启用
+      required:
+      - courts
+      - created_at
+      - id
+      - name
+      - time_slots
+      - updated_at
+    VenueList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: 场馆名称
+          maxLength: 100
+        address:
+          type: string
+          title: 地址
+          maxLength: 255
+        phone:
+          type: string
+          title: 联系电话
+          maxLength: 20
+        is_active:
+          type: boolean
+          title: 启用
+        court_count:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+      required:
+      - court_count
+      - created_at
+      - id
+      - name
+      - updated_at
+    VenueUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          title: 场馆名称
+          maxLength: 100
+        address:
+          type: string
+          title: 地址
+          maxLength: 255
+        phone:
+          type: string
+          title: 联系电话
+          maxLength: 20
+        description:
+          type: string
+          title: 描述
+        is_active:
+          type: boolean
+          title: 启用
+      required:
+      - name
