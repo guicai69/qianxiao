@@ -133,3 +133,19 @@ class BookingCouponTests(APITestCase):
         self.assertEqual(cancel.status_code, 200)
         uc.refresh_from_db()
         self.assertEqual(uc.status, 'unused')
+
+
+class CouponAdminTests(APITestCase):
+    def test_member_cannot_update(self):
+        c = make_coupon()
+        self.client.force_authenticate(user=make_user('13800000001'))
+        r = self.client.patch(f'/api/coupons/{c.id}/', {'name': 'hack'})
+        self.assertEqual(r.status_code, 403)
+
+    def test_toggle_active(self):
+        c = make_coupon(is_active=True)
+        self.client.force_authenticate(user=make_user('13800000000', role='admin'))
+        r = self.client.post(f'/api/coupons/{c.id}/toggle_active/')
+        self.assertEqual(r.status_code, 200)
+        c.refresh_from_db()
+        self.assertEqual(c.is_active, False)

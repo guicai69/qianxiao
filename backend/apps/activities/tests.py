@@ -93,3 +93,42 @@ class ActivityTests(APITestCase):
         r = self.client.get(f'/api/activities/{a.id}/registrations/')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['data']), 1)
+
+
+class ToggleActiveTests(APITestCase):
+    def test_member_cannot_toggle(self):
+        self.client.force_authenticate(user=make_user('13800000001'))
+        a = make_activity()
+        r = self.client.post(f'/api/activities/{a.id}/toggle_active/')
+        self.assertEqual(r.status_code, 403)
+
+    def test_admin_toggle(self):
+        a = make_activity(is_active=True)
+        self.client.force_authenticate(user=make_user('13800000000', role='admin'))
+        r = self.client.post(f'/api/activities/{a.id}/toggle_active/')
+        self.assertEqual(r.status_code, 200)
+        a.refresh_from_db()
+        self.assertEqual(a.is_active, False)
+
+
+class AttendTests(APITestCase):
+    def test_attend_success(self):
+        member = make_user('13800000001')
+        a = make_activity()
+        self.client.force_authenticate(user=member)
+        self.client.post(f'/api/activities/{a.id}/register/')
+        reg = Registration.objects.get(activity=a, user=member)
+        self.client.force_authenticate(user=make_user('13800000000', role='admin'))
+        r = self.client.post(f'/api/activities/{a.id}/attend/', {'registration_id': reg.id})
+        self.assertEqual(r.status_code, 200)
+        reg.refresh_from_db()
+        self.assertEqual(reg.status, 'attended')
+
+    def test_attend_requires_staff(self):
+        member = make_user('13800000001')
+        a = make_activity()
+        self.client.force_authenticate(user=member)
+        self.client.post(f'/api/activities/{a.id}/register/')
+        reg = Registration.objects.get(activity=a, user=member)
+        r = self.client.post(f'/api/activities/{a.id}/attend/', {'registration_id': reg.id})
+        self.assertEqual(r.status_code, 403)

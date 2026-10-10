@@ -20,6 +20,8 @@ const routes = [
       { path: 'bookings', component: () => import('@/views/admin/BookingManagement.vue'), meta: { title: '预约管理' } },
       { path: 'payments', component: () => import('@/views/admin/PaymentHistory.vue'), meta: { title: '支付记录' } },
       { path: 'announcements', component: () => import('@/views/admin/AnnouncementManagement.vue'), meta: { title: '公告管理' } },
+      { path: 'activities', component: () => import('@/views/admin/ActivityManagement.vue'), meta: { title: '活动管理' } },
+      { path: 'coupons', component: () => import('@/views/admin/CouponManagement.vue'), meta: { title: '优惠券管理' } },
     ],
   },
   // Reception routes

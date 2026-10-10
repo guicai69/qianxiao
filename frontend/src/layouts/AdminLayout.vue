@@ -147,6 +147,8 @@ import {
   Tickets,
   Wallet,
   Bell,
+  Trophy,
+  Discount,
   Fold,
   Expand,
   Menu,
@@ -178,6 +180,8 @@ const navItems = computed(() => {
   items.push({ index: "/admin/bookings", label: "预约管理", icon: Tickets })
   items.push({ index: "/admin/payments", label: "支付记录", icon: Wallet })
   items.push({ index: "/admin/announcements", label: "公告管理", icon: Bell })
+  items.push({ index: "/admin/activities", label: "活动管理", icon: Trophy })
+  items.push({ index: "/admin/coupons", label: "优惠券管理", icon: Discount })
   return items
 })
 

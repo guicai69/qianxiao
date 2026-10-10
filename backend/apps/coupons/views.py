@@ -25,7 +25,7 @@ class CouponViewSet(viewsets.ModelViewSet):
     serializer_class = CouponSerializer
 
     def get_permissions(self):
-        if self.action in ('create', 'destroy'):
+        if self.action in ('create', 'update', 'partial_update', 'destroy', 'toggle_active'):
             return [IsAdmin()]
         return [IsAuthenticated()]
 
@@ -35,6 +35,14 @@ class CouponViewSet(viewsets.ModelViewSet):
         if self.action == 'list' and self.request.user.role != 'admin':
             qs = qs.filter(is_active=True, expires_at__gt=timezone.now())
         return qs
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """上架/下架优惠券（管理员）"""
+        coupon = self.get_object()
+        coupon.is_active = not coupon.is_active
+        coupon.save(update_fields=['is_active'])
+        return Response({'code': 200, 'message': '状态已更新', 'data': {'is_active': coupon.is_active}})
 
     @transaction.atomic
     @action(detail=True, methods=['post'])

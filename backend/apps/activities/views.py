@@ -31,6 +31,14 @@ class ActivityViewSet(viewsets.ModelViewSet):
             qs = qs.filter(is_active=is_active == 'true')
         return qs
 
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """上架/下架活动（管理员/前台）"""
+        activity = self.get_object()
+        activity.is_active = not activity.is_active
+        activity.save(update_fields=['is_active'])
+        return Response({'code': 200, 'message': '状态已更新', 'data': {'is_active': activity.is_active}})
+
     @transaction.atomic
     @action(detail=True, methods=['post'])
     def register(self, request, pk=None):
@@ -88,3 +96,19 @@ class ActivityViewSet(viewsets.ModelViewSet):
         activity = self.get_object()
         qs = Registration.objects.filter(activity=activity).select_related('user')
         return Response({'code': 200, 'data': RegistrationSerializer(qs, many=True).data})
+
+    @action(detail=True, methods=['post'])
+    def attend(self, request, pk=None):
+        """报名签到核销（管理员/前台）：把报名标记为「已到场」"""
+        reg_id = request.data.get('registration_id')
+        try:
+            reg = Registration.objects.get(pk=reg_id, activity_id=pk)
+        except (Registration.DoesNotExist, ValueError, TypeError):
+            return Response({'code': 400, 'message': '报名记录不存在'}, status=400)
+        if reg.status == Registration.STATUS_CANCELLED:
+            return Response({'code': 400, 'message': '该报名已取消'}, status=400)
+        if reg.status == Registration.STATUS_ATTENDED:
+            return Response({'code': 400, 'message': '该报名已签到'}, status=400)
+        reg.status = Registration.STATUS_ATTENDED
+        reg.save(update_fields=['status', 'updated_at'])
+        return Response({'code': 200, 'message': '签到成功'})
