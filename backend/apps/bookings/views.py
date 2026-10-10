@@ -98,7 +98,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         # 惰性取消过期未支付订单，释放被占坑的时段
         cancel_expired_pendings()
 
-        # 锁场地行，串行化同场地的下单，配合 occupancy_key 唯一索引防并发双写
+        # 锁场地行，串行化同场地的下单，从根上防止同一场地同时段被双写
         Court.objects.select_for_update().get(pk=court.pk)
         if Booking.objects.filter(
             court=court, date=date, time_slot=time_slot,

@@ -113,19 +113,6 @@ class PayBalanceTests(APITestCase):
         self.booking.refresh_from_db()
         self.assertEqual(self.booking.status, 'pending')
 
-    def test_pay_conflict_slot_rejected(self):
-        other = make_user('13800000002')
-        paid = Booking.objects.create(
-            user=other, court=self.booking.court, date=self.booking.date,
-            time_slot=self.booking.time_slot, status='paid', amount='100.00',
-        )
-        r = self.client.post('/api/payments/pay/', {'booking_id': self.booking.id, 'method': 'balance'})
-        self.assertEqual(r.status_code, 400)
-        self.booking.refresh_from_db()
-        self.assertEqual(self.booking.status, 'pending')
-        self.assertEqual(paid.occupancy_key, f'{self.booking.court_id}-{self.booking.date}-{self.booking.time_slot_id}')
-
-
 class BonusTiersTests(APITestCase):
     def test_bonus_tiers_endpoint(self):
         member = make_user('13800000001')

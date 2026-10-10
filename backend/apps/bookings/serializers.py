@@ -27,7 +27,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Booking
-        exclude = ('occupancy_key',)
+        fields = '__all__'
 
 
 class BookingCreateSerializer(serializers.ModelSerializer):

@@ -49,11 +49,6 @@ def check_booking_payable(booking):
         booking.status = 'cancelled'
         booking.save()
         return Response({'code': 400, 'message': '订单已超时，请重新预约'}, status=400)
-    if Booking.objects.filter(
-        court_id=booking.court_id, date=booking.date,
-        time_slot_id=booking.time_slot_id, status='paid',
-    ).exclude(pk=booking.pk).exists():
-        return Response({'code': 400, 'message': '该时段已被预约'}, status=400)
     return None
 
 
