@@ -31,9 +31,10 @@
         <el-table-column label="有效期至" width="170">
           <template #default="{ row }"><span class="mono dim">{{ formatTime(row.expires_at) }}</span></template>
         </el-table-column>
-        <el-table-column label="状态" width="90" align="center">
+        <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.is_active ? 'success' : 'info'" effect="light" round size="small">
+            <el-tag v-if="row.is_expired" type="danger" effect="light" round size="small">已过期</el-tag>
+            <el-tag v-else :type="row.is_active ? 'success' : 'info'" effect="light" round size="small">
               {{ row.is_active ? '启用' : '停用' }}
             </el-tag>
           </template>

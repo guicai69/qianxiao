@@ -6,6 +6,7 @@ export const bookingApi = {
   create(data) { return api.post('bookings/', data) },
   detail(id) { return api.get(`bookings/${id}/`) },
   cancel(id) { return api.post(`bookings/${id}/cancel/`) },
+  requestCancel(id, data) { return api.post(`bookings/${id}/request_cancel/`, data || {}) },
   my(params) { return api.get('bookings/my/', params) },
   checkIn(id) { return api.post(`bookings/${id}/check_in/`) },
   exportCsv(params) { return fetchCsv('/api/bookings/export_csv/', params) },

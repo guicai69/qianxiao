@@ -71,9 +71,14 @@
               <template v-else-if="row.status === 'paid' && row.checked_in">
                 <el-button @click="openReview(row)">评价</el-button>
               </template>
-              <el-button v-else-if="row.status === 'paid'" @click="handleCancel(row)">
-                申请取消
-              </el-button>
+              <template v-else-if="row.status === 'paid'">
+                <el-tag v-if="row.cancellation_status === 'pending'" type="warning" effect="light" round>退场审批中</el-tag>
+                <el-tag v-else-if="row.cancellation_status === 'approved'" type="primary" effect="light" round>待退款</el-tag>
+                <el-tag v-else-if="row.cancellation_status === 'refunded'" type="success" effect="light" round>已退款</el-tag>
+                <el-tag v-else-if="row.cancellation_status === 'rejected'" type="danger" effect="light" round>退场被驳回</el-tag>
+                <el-button v-else-if="row.cancel_window === 'free'" @click="handleCancel(row)">取消预约</el-button>
+                <el-button v-else-if="row.cancel_window === 'request'" type="warning" @click="handleRequestCancel(row)">申请退场</el-button>
+              </template>
             </div>
           </li>
         </ul>
@@ -162,6 +167,7 @@
 import { ref, reactive, computed, onMounted } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { Wallet } from "@element-plus/icons-vue"
+import api from "@/api"
 import { bookingApi } from "@/api/bookings"
 import { paymentApi } from "@/api/payments"
 import { reviewApi } from "@/api/reviews"
@@ -202,10 +208,21 @@ async function fetchData() {
     const res = await bookingApi.my(params)
     list.value = res.results || []
     total.value = res.count || 0
+    // 拉取订单会触发到期退款的惰性处理，余额可能刚变——同步刷新，无需手动刷页面
+    refreshBalance()
   } catch {
     ElMessage.error("获取订单失败")
   } finally {
     loading.value = false
+  }
+}
+
+async function refreshBalance() {
+  try {
+    const res = await api.get("users/me/")
+    if (res?.data) userStore.setUserInfo(res.data)
+  } catch {
+    // 静默：余额刷新失败不打断订单列表
   }
 }
 
@@ -256,8 +273,33 @@ async function confirmPay() {
 async function handleCancel(row) {
   try {
     await ElMessageBox.confirm("确定取消该订单？", "取消确认", { type: "warning" })
-    await bookingApi.cancel(row.id)
-    ElMessage.success("已取消")
+    const res = await bookingApi.cancel(row.id)
+    const refund = res?.data?.refund_amount
+    if (refund && Number(refund) > 0) {
+      // 退款已回到余额：同步刷新顶部余额显示，避免用户误以为没退钱
+      if (res.data.balance != null) {
+        userStore.userInfo.balance = res.data.balance
+        userStore.setUserInfo(userStore.userInfo)
+      }
+      ElMessage.success(`已取消，退款 ¥${refund}`)
+    } else {
+      ElMessage.success("已取消")
+    }
+    fetchData()
+  } catch {
+    // canceled or handled
+  }
+}
+
+async function handleRequestCancel(row) {
+  try {
+    await ElMessageBox.confirm(
+      "退场申请将提交前台审批，审批通过后 5 分钟自动退款。确定申请？",
+      "申请退场",
+      { type: "warning", confirmButtonText: "提交申请", cancelButtonText: "取消" }
+    )
+    await bookingApi.requestCancel(row.id, { reason: "" })
+    ElMessage.success("退场申请已提交，等待前台审批")
     fetchData()
   } catch {
     // canceled or handled

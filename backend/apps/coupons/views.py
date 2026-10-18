@@ -70,11 +70,15 @@ class CouponViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def my(self, request):
-        """我的优惠券"""
+        """我的优惠券：status=unused(可用)/used(已使用)/expired(已过期)"""
         qs = UserCoupon.objects.filter(user=request.user).select_related('coupon')
         status = request.query_params.get('status')
-        if status:
-            qs = qs.filter(status=status)
+        if status == 'expired':
+            qs = qs.filter(status=UserCoupon.STATUS_UNUSED, expires_at__lte=timezone.now())
+        elif status == 'unused':
+            qs = qs.filter(status=UserCoupon.STATUS_UNUSED, expires_at__gt=timezone.now())
+        elif status == 'used':
+            qs = qs.filter(status=UserCoupon.STATUS_USED)
         return Response({'code': 200, 'data': UserCouponSerializer(qs, many=True).data})
 
     @transaction.atomic

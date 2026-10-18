@@ -86,9 +86,11 @@ request.interceptors.response.use(
         case 401:
           handleLogout()
           break
-        case 403:
-          ElMessage.error('没有权限访问')
+        case 403: {
+          const d = response.data
+          ElMessage.error((d && (d.detail || d.message)) || '没有权限访问')
           break
+        }
         case 500:
           ElMessage.error('服务器错误')
           break

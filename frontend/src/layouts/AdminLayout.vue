@@ -149,6 +149,7 @@ import {
   Bell,
   Trophy,
   Discount,
+  RefreshLeft,
   Fold,
   Expand,
   Menu,
@@ -182,6 +183,7 @@ const navItems = computed(() => {
   items.push({ index: "/admin/announcements", label: "公告管理", icon: Bell })
   items.push({ index: "/admin/activities", label: "活动管理", icon: Trophy })
   items.push({ index: "/admin/coupons", label: "优惠券管理", icon: Discount })
+  items.push({ index: "/admin/cancellation-requests", label: "退场申请", icon: RefreshLeft })
   return items
 })
 

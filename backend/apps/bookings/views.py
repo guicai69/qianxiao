@@ -12,12 +12,16 @@ from django.http import HttpResponse
 from django.utils import timezone
 from decimal import Decimal
 
-from .models import Booking
+from .models import Booking, CancellationRequest
 from .serializers import (
     BookingListSerializer, BookingDetailSerializer,
     BookingCreateSerializer,
+    CancellationRequestSerializer, CancellationRequestCreateSerializer,
 )
-from .utils import cancel_expired_pendings, FREE_CANCEL_WINDOW, CANCEL_FEE_RATE
+from .utils import (
+    cancel_expired_pendings, FREE_CANCEL_WINDOW, CANCEL_FEE_RATE,
+    process_due_refunds, REFUND_DELAY,
+)
 from apps.common.cache import invalidate
 from apps.payments.models import Payment
 from apps.users.permissions import IsAdminOrReception
@@ -39,7 +43,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         return BookingDetailSerializer
 
     def get_permissions(self):
-        if self.action in ('create', 'list', 'my', 'retrieve', 'cancel'):
+        if self.action in ('create', 'list', 'my', 'retrieve', 'cancel', 'request_cancel'):
             return [IsAuthenticated()]
         return [IsAdminOrReception()]
 
@@ -207,8 +211,47 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         return Response({'code': 200, 'message': '已取消', 'data': data})
 
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def request_cancel(self, request, pk=None):
+        """会员在开场前 2 小时内提交退场申请（前台审批通过后 5 分钟自动退款）"""
+        booking = self.get_object()
+        if booking.status != 'paid':
+            return Response({'code': 400, 'message': '只有已支付订单可申请退场'}, status=400)
+
+        slot_start = datetime.combine(
+            booking.date, booking.time_slot.start_time,
+            tzinfo=timezone.get_current_timezone(),
+        )
+        now = timezone.now()
+        if slot_start <= now:
+            return Response({'code': 400, 'message': '已开场，无法申请退场'}, status=400)
+        if (slot_start - now) > FREE_CANCEL_WINDOW:
+            return Response({'code': 400, 'message': '距开场超过 2 小时，可直接取消'}, status=400)
+        if CancellationRequest.objects.filter(
+            booking=booking,
+            status__in=(CancellationRequest.STATUS_PENDING, CancellationRequest.STATUS_APPROVED),
+        ).exists():
+            return Response({'code': 400, 'message': '该订单已有退场申请'}, status=400)
+
+        serializer = CancellationRequestCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        req = CancellationRequest.objects.create(
+            booking=booking,
+            user=request.user,
+            reason=serializer.validated_data.get('reason', ''),
+            refund_amount=booking.amount,
+            fee_amount=Decimal('0'),
+            status=CancellationRequest.STATUS_PENDING,
+        )
+        return Response({
+            'code': 200, 'message': '退场申请已提交，等待前台审批',
+            'data': CancellationRequestSerializer(req).data,
+        })
+
     @action(detail=False, methods=['get'])
     def my(self, request):
+        process_due_refunds()
         qs = self.get_queryset().filter(user=request.user)
         page = self.paginate_queryset(qs)
         if page is not None:
@@ -259,3 +302,54 @@ class BookingViewSet(viewsets.ModelViewSet):
                 timezone.localtime(b.created_at).strftime('%Y-%m-%d %H:%M'),
             ])
         return response
+
+
+class CancellationRequestViewSet(viewsets.ReadOnlyModelViewSet):
+    """退场申请：会员查看自己的；前台/管理员审批与驳回"""
+    queryset = CancellationRequest.objects.select_related(
+        'booking', 'user', 'booking__court', 'booking__court__venue', 'booking__time_slot',
+    ).all()
+    serializer_class = CancellationRequestSerializer
+
+    def get_permissions(self):
+        if self.action in ('approve', 'reject'):
+            return [IsAdminOrReception()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        # 惰性处理到期退款（审批通过 5 分钟后）
+        process_due_refunds()
+        qs = super().get_queryset()
+        if self.request.user.role == 'member':
+            qs = qs.filter(user=self.request.user)
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return qs
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def approve(self, request, pk=None):
+        req = self.get_object()
+        if req.status != CancellationRequest.STATUS_PENDING:
+            return Response({'code': 400, 'message': '该申请已处理'}, status=400)
+        now = timezone.now()
+        req.status = CancellationRequest.STATUS_APPROVED
+        req.reviewed_by = request.user
+        req.reviewed_at = now
+        req.refund_at = now + REFUND_DELAY
+        req.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'refund_at'])
+        return Response({'code': 200, 'message': '已通过，5 分钟后自动退款'})
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def reject(self, request, pk=None):
+        req = self.get_object()
+        if req.status != CancellationRequest.STATUS_PENDING:
+            return Response({'code': 400, 'message': '该申请已处理'}, status=400)
+        req.status = CancellationRequest.STATUS_REJECTED
+        req.reject_reason = request.data.get('reject_reason', '')
+        req.reviewed_by = request.user
+        req.reviewed_at = timezone.now()
+        req.save(update_fields=['status', 'reject_reason', 'reviewed_by', 'reviewed_at'])
+        return Response({'code': 200, 'message': '已驳回'})

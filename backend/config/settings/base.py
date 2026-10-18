@@ -194,6 +194,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'bookings.cancel_expired_pendings',
         'schedule': 300,  # 每 5 分钟
     },
+    'process-due-refunds': {
+        'task': 'bookings.process_due_refunds',
+        'schedule': 60,  # 每 1 分钟（退场申请审批通过 5 分钟后自动退款）
+    },
 }
 
 # --- 日志 ---

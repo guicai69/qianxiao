@@ -177,6 +177,32 @@ class ExpiryCommandTests(APITestCase):
         b.refresh_from_db()
         self.assertEqual(b.status, 'cancelled')
 
+
+class PayCancelRefundTests(APITestCase):
+    """回归：支付后取消必须把余额退回（用户报过「取消只提示已取消、钱没退」）"""
+
+    def test_pay_then_cancel_refunds_balance(self):
+        member = make_user('13800000001', balance='1000.00')
+        _, court, slot = make_venue_court_slot(price='100.00')
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        b = Booking.objects.create(
+            user=member, court=court, date=tomorrow, time_slot=slot,
+            status='pending', amount='100.00',
+        )
+        self.client.force_authenticate(user=member)
+
+        r = self.client.post('/api/payments/pay/', {'booking_id': b.id, 'method': 'balance'})
+        self.assertEqual(r.status_code, 200)
+        member.refresh_from_db()
+        self.assertEqual(str(member.balance), '900.00')
+
+        r2 = self.client.post(f'/api/bookings/{b.id}/cancel/')
+        self.assertEqual(r2.status_code, 200)
+        self.assertEqual(r2.data['data']['refund_amount'], '100.00')
+        member.refresh_from_db()
+        self.assertEqual(str(member.balance), '1000.00')
+        self.assertTrue(Payment.objects.filter(booking=b, type='refund', amount='100.00').exists())
+
     def test_celery_task_cancels_stale_pendings(self):
         member = make_user('13800000001')
         _, court, slot = make_venue_court_slot()

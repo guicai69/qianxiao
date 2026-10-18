@@ -22,6 +22,7 @@ const routes = [
       { path: 'announcements', component: () => import('@/views/admin/AnnouncementManagement.vue'), meta: { title: '公告管理' } },
       { path: 'activities', component: () => import('@/views/admin/ActivityManagement.vue'), meta: { title: '活动管理' } },
       { path: 'coupons', component: () => import('@/views/admin/CouponManagement.vue'), meta: { title: '优惠券管理' } },
+      { path: 'cancellation-requests', component: () => import('@/views/admin/CancellationRequestManagement.vue'), meta: { title: '退场申请' } },
     ],
   },
   // Reception routes
@@ -48,6 +49,7 @@ const routes = [
       { path: 'orders', component: () => import('@/views/member/MemberOrders.vue'), meta: { title: '我的订单', auth: true } },
       { path: 'payments', component: () => import('@/views/member/PaymentHistory.vue'), meta: { title: '支付记录', auth: true } },
       { path: 'activities', component: () => import('@/views/member/Activities.vue'), meta: { title: '活动课程', auth: true } },
+      { path: 'activities/:id', component: () => import('@/views/member/ActivityDetail.vue'), meta: { title: '活动详情', auth: true } },
       { path: 'coupons', component: () => import('@/views/member/Coupons.vue'), meta: { title: '优惠券', auth: true } },
     ],
   },

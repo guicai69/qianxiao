@@ -24,7 +24,9 @@
         <div class="card-main">
           <div class="card-top">
             <el-tag size="small" round effect="light">{{ typeLabel(a.type) }}</el-tag>
-            <h3>{{ a.title }}</h3>
+            <h3 class="title-link" role="link" tabindex="0" @click="goDetail(a)" @keydown.enter="goDetail(a)">
+              {{ a.title }}
+            </h3>
           </div>
           <p class="desc">{{ a.description || '暂无说明' }}</p>
           <div class="meta mono">
@@ -35,6 +37,7 @@
           </div>
         </div>
         <div class="card-side">
+          <el-button round @click="goDetail(a)">详情</el-button>
           <el-button v-if="myStatus(a.id) === 'registered'" type="info" round @click="cancel(a)">
             取消报名
           </el-button>
@@ -66,9 +69,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { activityApi } from '@/api/activities'
 import { money } from '@/utils/format'
+
+const router = useRouter()
 
 const items = ref([])
 const mine = ref([])
@@ -106,6 +112,10 @@ async function fetchData() {
   }
 }
 
+function goDetail(a) {
+  router.push(`/activities/${a.id}`)
+}
+
 async function register(a) {
   try {
     await activityApi.register(a.id)
@@ -139,6 +149,8 @@ onMounted(fetchData)
 .card-main { min-width: 0; }
 .card-top { display: flex; align-items: center; gap: 10px; }
 .card-top h3 { margin: 0; font-size: var(--fs-15); color: var(--ink-1); }
+.title-link { cursor: pointer; }
+.title-link:hover { color: var(--accent); }
 .desc { margin: 6px 0; color: var(--ink-3); font-size: var(--fs-13); }
 .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--ink-4); font-size: var(--fs-12); }
 .sub { margin: 28px 0 12px; font-size: var(--fs-16); color: var(--ink-1); }

@@ -149,3 +149,49 @@ class CouponAdminTests(APITestCase):
         self.assertEqual(r.status_code, 200)
         c.refresh_from_db()
         self.assertEqual(c.is_active, False)
+
+
+class CouponExpiryTests(APITestCase):
+    """优惠券过期状态：expiry_status 字段 + my 接口 status 过滤 + 模板 is_expired"""
+
+    def setUp(self):
+        self.member = make_user('13800000001')
+        self.client.force_authenticate(user=self.member)
+
+    def test_expiry_status_field_and_filters(self):
+        c = make_coupon(days=7)
+        self.client.post(f'/api/coupons/{c.id}/claim/')
+        fresh = UserCoupon.objects.get(user=self.member, coupon=c)
+        expired = UserCoupon.objects.create(
+            user=self.member, coupon=None, amount=Decimal('5.00'),
+            min_amount=Decimal('0'), expires_at=timezone.now() - timedelta(days=1),
+        )
+        # 默认返回全部并带 expiry_status
+        r = self.client.get('/api/coupons/my/')
+        self.assertEqual(r.status_code, 200)
+        by_id = {u['id']: u for u in r.data['data']}
+        self.assertEqual(by_id[fresh.id]['expiry_status'], 'unused')
+        self.assertEqual(by_id[expired.id]['expiry_status'], 'expired')
+        # 可用过滤：只含未过期未使用
+        unused = self.client.get('/api/coupons/my/', {'status': 'unused'}).data['data']
+        self.assertEqual([u['id'] for u in unused], [fresh.id])
+        # 过期过滤：只含已过期未使用
+        expired_list = self.client.get('/api/coupons/my/', {'status': 'expired'}).data['data']
+        self.assertEqual([u['id'] for u in expired_list], [expired.id])
+
+    def test_used_coupon_expiry_status(self):
+        c = make_coupon(days=7)
+        self.client.post(f'/api/coupons/{c.id}/claim/')
+        uc = UserCoupon.objects.get(user=self.member, coupon=c)
+        uc.status = UserCoupon.STATUS_USED
+        uc.used_at = timezone.now()
+        uc.save(update_fields=['status', 'used_at'])
+        r = self.client.get('/api/coupons/my/', {'status': 'used'}).data['data']
+        self.assertEqual([u['id'] for u in r], [uc.id])
+        self.assertEqual(r[0]['expiry_status'], 'used')
+
+    def test_template_is_expired_field(self):
+        c = make_coupon(days=-1)
+        r = self.client.get(f'/api/coupons/{c.id}/')
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data['is_expired'])

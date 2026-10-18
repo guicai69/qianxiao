@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Prefetch
 from django.utils import timezone
 
 from .models import Activity, Registration
@@ -23,6 +23,13 @@ class ActivityViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        user = self.request.user
+        if user.is_authenticated:
+            qs = qs.prefetch_related(Prefetch(
+                'registrations',
+                queryset=Registration.objects.filter(user=user),
+                to_attr='my_regs',
+            ))
         type_filter = self.request.query_params.get('type')
         if type_filter:
             qs = qs.filter(type=type_filter)

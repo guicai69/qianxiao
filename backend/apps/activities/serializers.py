@@ -5,12 +5,19 @@ from .models import Activity, Registration
 
 class ActivitySerializer(serializers.ModelSerializer):
     venue_name = serializers.CharField(source='venue.name', read_only=True)
+    my_registration = serializers.SerializerMethodField()
 
     class Meta:
         model = Activity
         fields = ['id', 'venue', 'venue_name', 'type', 'title', 'description',
                   'start_at', 'end_at', 'price', 'capacity', 'registered',
-                  'deadline', 'is_active', 'created_at']
+                  'deadline', 'is_active', 'my_registration', 'created_at']
+
+    def get_my_registration(self, obj):
+        regs = getattr(obj, 'my_regs', None)
+        if not regs:
+            return None
+        return RegistrationSerializer(regs[0]).data
 
     def validate(self, attrs):
         start = attrs.get('start_at', getattr(self.instance, 'start_at', None))

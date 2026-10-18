@@ -94,6 +94,25 @@ class ActivityTests(APITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['data']), 1)
 
+    def test_my_registration_field_on_detail_and_list(self):
+        a = make_activity()
+        # 未报名时为空
+        r = self.client.get(f'/api/activities/{a.id}/')
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNone(r.data['my_registration'])
+        # 报名后返回报名记录
+        self.client.post(f'/api/activities/{a.id}/register/')
+        r = self.client.get(f'/api/activities/{a.id}/')
+        self.assertEqual(r.data['my_registration']['status'], 'registered')
+        # 列表同样带该字段（详情页依赖 detail 接口）
+        r = self.client.get('/api/activities/')
+        found = [x for x in r.data['results'] if x['id'] == a.id][0]
+        self.assertEqual(found['my_registration']['status'], 'registered')
+        # 其他用户看到的是空
+        self.client.force_authenticate(user=make_user('13800000002'))
+        r = self.client.get(f'/api/activities/{a.id}/')
+        self.assertIsNone(r.data['my_registration'])
+
 
 class ToggleActiveTests(APITestCase):
     def test_member_cannot_toggle(self):

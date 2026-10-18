@@ -25,14 +25,36 @@
     </div>
 
     <h2 class="sub">我的券</h2>
+    <div class="chips">
+      <button
+        v-for="t in mineTabs"
+        :key="t.key"
+        type="button"
+        class="chip"
+        :class="{ active: mineFilter === t.key }"
+        @click="mineFilter = t.key; fetchMine()"
+      >
+        {{ t.label }}
+      </button>
+    </div>
     <div class="list surface">
-      <div v-if="!mine.length" class="empty">还没有券</div>
-      <section v-for="u in mine" :key="u.id" class="card">
+      <div v-if="!mine.length" class="empty">该分类下还没有券</div>
+      <section
+        v-for="u in mine"
+        :key="u.id"
+        class="card"
+        :class="{ 'is-expired': u.expiry_status === 'expired' }"
+      >
         <div class="card-main">
-          <h3>{{ u.coupon_name || '积分兑换券' }} <b class="mono accent">¥{{ money(u.amount) }}</b></h3>
+          <h3>
+            {{ u.coupon_name || '积分兑换券' }} <b class="mono accent">¥{{ money(u.amount) }}</b>
+            <el-tag :type="expiryTag(u.expiry_status)" size="small" round effect="light" class="state-tag">
+              {{ expiryLabel(u.expiry_status) }}
+            </el-tag>
+          </h3>
           <p class="meta mono">
             满 ¥{{ money(u.min_amount) }} 可用 · {{ fmt(u.expires_at) }} 前有效
-            · {{ u.status === 'used' ? '已使用' : '未使用' }}
+            <span v-if="u.expiry_status === 'expired'">· 已过期不可用</span>
           </p>
         </div>
       </section>
@@ -50,17 +72,40 @@ import { useUserStore } from '@/store'
 const userStore = useUserStore()
 const claimable = ref([])
 const mine = ref([])
+const mineFilter = ref('')
 const points = computed(() => Number(userStore.userInfo?.points || 0))
 const fmt = (t) => (t || '').slice(0, 16).replace('T', ' ')
 
-async function fetchData() {
+const mineTabs = [
+  { key: '', label: '全部' },
+  { key: 'unused', label: '可用' },
+  { key: 'used', label: '已使用' },
+  { key: 'expired', label: '已过期' },
+]
+const expiryLabel = (s) => ({ unused: '可用', used: '已使用', expired: '已过期' }[s] || s)
+const expiryTag = (s) => ({ unused: 'success', used: 'info', expired: 'danger' }[s] || 'info')
+
+async function fetchClaimable() {
   try {
-    const [list, my] = await Promise.all([couponApi.list(), couponApi.my()])
-    claimable.value = list.results || []
-    mine.value = my.data || []
+    const res = await couponApi.list()
+    claimable.value = res.results || []
   } catch {
     ElMessage.error('获取优惠券失败')
   }
+}
+
+async function fetchMine() {
+  try {
+    const res = await couponApi.my(mineFilter.value ? { status: mineFilter.value } : {})
+    mine.value = res.data || []
+  } catch {
+    ElMessage.error('获取我的券失败')
+  }
+}
+
+function fetchData() {
+  fetchClaimable()
+  fetchMine()
 }
 
 async function claim(c) {
@@ -88,11 +133,16 @@ onMounted(fetchData)
 .page-head h1 { font-size: var(--fs-24); font-weight: 800; color: var(--ink-1); margin: 0; }
 .page-head p { margin: 6px 0 12px; color: var(--ink-3); font-size: var(--fs-13); }
 .sub { margin: 28px 0 12px; font-size: var(--fs-16); color: var(--ink-1); }
+.chips { display: flex; gap: 8px; margin: 0 0 12px; }
+.chip { padding: 6px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); cursor: pointer; font-size: var(--fs-13); color: var(--ink-2); }
+.chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 700; }
 .list { padding: 10px 18px; }
 .empty { padding: 28px 0; text-align: center; color: var(--ink-4); font-size: var(--fs-13); }
 .card { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border-soft); }
 .card:last-child { border-bottom: 0; }
+.card.is-expired { opacity: 0.55; }
 .card-main { min-width: 0; }
-.card-main h3 { margin: 0 0 6px; font-size: var(--fs-15); color: var(--ink-1); }
+.card-main h3 { margin: 0 0 6px; font-size: var(--fs-15); color: var(--ink-1); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.state-tag { flex: 0 0 auto; }
 .meta { margin: 0; color: var(--ink-4); font-size: var(--fs-12); }
 </style>

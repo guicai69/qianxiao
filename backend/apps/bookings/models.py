@@ -73,3 +73,52 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"{self.user.nickname or self.user.phone} @ {self.court.name} {self.date}"
+
+
+class CancellationRequest(models.Model):
+    """退场申请：会员在开场前 2 小时内提交，前台审批通过后 5 分钟自动退款"""
+    STATUS_PENDING = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_REFUNDED = 'refunded'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, '待审批'),
+        (STATUS_APPROVED, '已通过'),
+        (STATUS_REJECTED, '已驳回'),
+        (STATUS_REFUNDED, '已退款'),
+    ]
+
+    booking = models.ForeignKey(
+        Booking, on_delete=models.CASCADE, related_name='cancellation_requests',
+        verbose_name='订单',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='cancellation_requests', verbose_name='用户',
+    )
+    reason = models.CharField('申请原因', max_length=200, default='', blank=True)
+    refund_amount = models.DecimalField('应退金额', max_digits=10, decimal_places=2, default=0)
+    fee_amount = models.DecimalField('手续费', max_digits=10, decimal_places=2, default=0)
+    status = models.CharField('状态', max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    reject_reason = models.CharField('驳回原因', max_length=200, default='', blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='reviewed_cancellation_requests', verbose_name='审批人',
+    )
+    reviewed_at = models.DateTimeField('审批时间', null=True, blank=True)
+    refund_at = models.DateTimeField('计划退款时间', null=True, blank=True)
+    refunded_at = models.DateTimeField('实际退款时间', null=True, blank=True)
+    created_at = models.DateTimeField('申请时间', auto_now_add=True)
+
+    class Meta:
+        db_table = 'cancellation_requests'
+        verbose_name = '退场申请'
+        verbose_name_plural = verbose_name
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status', 'refund_at']),
+            models.Index(fields=['user', 'status']),
+        ]
+
+    def __str__(self):
+        return f'{self.user.phone} 退场申请 #{self.booking_id} ({self.get_status_display()})'
