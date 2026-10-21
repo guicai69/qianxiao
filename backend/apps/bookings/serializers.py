@@ -66,13 +66,19 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         fields = ['court', 'date', 'time_slot', 'user_coupon_id']
 
     def validate(self, attrs):
+        from datetime import date as d
+
+        from django.utils import timezone
+
         court = attrs['court']
         date = attrs['date']
         time_slot = attrs['time_slot']
 
-        from datetime import date as d
         if date < d.today():
             raise serializers.ValidationError('不可预约过去的日期')
+        # 今天已经开场的时段不可预约（例如 19:23 时，19:00-20:00 及更早的时段都不再开放）
+        if date == d.today() and time_slot.start_time <= timezone.localtime().time():
+            raise serializers.ValidationError('该时段已开场，请选择更晚的时段')
 
         if court.venue_id != time_slot.venue_id:
             raise serializers.ValidationError('场地与时段不属于同一场馆')

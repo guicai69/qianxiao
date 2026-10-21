@@ -40,6 +40,30 @@ class BookingCreateTests(APITestCase):
         self.assertEqual(self.client.post('/api/bookings/', payload).status_code, 201)
         self.assertEqual(self.client.post('/api/bookings/', payload).status_code, 400)
 
+    def test_past_time_slot_today_rejected(self):
+        """今天已经开场的时段不能下单（如 19:23 时 19:00-20:00 时段应被拒）"""
+        _, court, slot = make_venue_court_slot(start='10:00', end='11:00')
+        member = make_user('13800000001')
+        self.client.force_authenticate(user=member)
+        fixed = timezone.localtime().replace(hour=12, minute=0, second=0, microsecond=0)
+        with mock.patch('django.utils.timezone.now', return_value=fixed):
+            r = self.client.post('/api/bookings/', {
+                'court': court.id, 'date': fixed.date().isoformat(), 'time_slot': slot.id,
+            })
+        self.assertEqual(r.status_code, 400)
+
+    def test_future_time_slot_today_allowed(self):
+        """今天还没开场的时段照常可约"""
+        _, court, slot = make_venue_court_slot(start='18:00', end='19:00')
+        member = make_user('13800000001')
+        self.client.force_authenticate(user=member)
+        fixed = timezone.localtime().replace(hour=12, minute=0, second=0, microsecond=0)
+        with mock.patch('django.utils.timezone.now', return_value=fixed):
+            r = self.client.post('/api/bookings/', {
+                'court': court.id, 'date': fixed.date().isoformat(), 'time_slot': slot.id,
+            })
+        self.assertEqual(r.status_code, 201)
+
     def test_past_date_rejected(self):
         _, court, slot = make_venue_court_slot()
         member = make_user('13800000001')

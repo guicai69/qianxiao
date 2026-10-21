@@ -106,6 +106,9 @@
             <div class="board-legend">
               <span class="legend-item"><i class="dot dot--free"></i>可预约</span>
               <span class="legend-item"><i class="dot dot--booked"></i>已预约</span>
+              <span v-if="bookDate === quickToday" class="legend-item">
+                <i class="dot dot--past"></i>已过时段
+              </span>
               <span v-if="discountRate < 1" class="legend-item legend-member">
                 <i class="dot dot--member"></i>{{ levelLabel }} {{ discountText(discountRate) }}
               </span>
@@ -131,12 +134,13 @@
                     type="button"
                     class="cell drop-in"
                     :style="{ '--i': row }"
-                    :class="{ 'is-booked': isBooked(c, s), 'is-off': !venue.is_active }"
-                    :disabled="isBooked(c, s) || !venue.is_active"
-                    :aria-label="`${c.name} ${s.display} ${isBooked(c, s) ? '已预约' : '可预约'}`"
+                    :class="{ 'is-booked': isBooked(c, s), 'is-past': isPastSlot(s), 'is-off': !venue.is_active }"
+                    :disabled="isBooked(c, s) || isPastSlot(s) || !venue.is_active"
+                    :aria-label="`${c.name} ${s.display} ${isBooked(c, s) ? '已预约' : isPastSlot(s) ? '已过时段' : '可预约'}`"
                     @click="pick(c, s)"
                   >
                     <span v-if="isBooked(c, s)" class="cell-state">已订</span>
+                    <span v-else-if="isPastSlot(s)" class="cell-state">已过</span>
                     <span v-else class="cell-price mono">¥{{ memberPrice(s) }}</span>
                   </button>
                 </template>
@@ -152,13 +156,13 @@
                       :key="'m' + c.id + '-' + s.id"
                       type="button"
                       class="court-chip"
-                      :class="{ 'is-booked': isBooked(c, s), 'is-off': !venue.is_active }"
-                      :disabled="isBooked(c, s) || !venue.is_active"
-                      :aria-label="`${c.name} ${s.display} ${isBooked(c, s) ? '已预约' : '可预约'}`"
+                      :class="{ 'is-booked': isBooked(c, s), 'is-past': isPastSlot(s), 'is-off': !venue.is_active }"
+                      :disabled="isBooked(c, s) || isPastSlot(s) || !venue.is_active"
+                      :aria-label="`${c.name} ${s.display} ${isBooked(c, s) ? '已预约' : isPastSlot(s) ? '已过时段' : '可预约'}`"
                       @click="pick(c, s)"
                     >
                       <span class="chip-name">{{ c.name }}</span>
-                      <span class="chip-price mono">{{ isBooked(c, s) ? '已订' : '¥' + memberPrice(s) }}</span>
+                      <span class="chip-price mono">{{ isBooked(c, s) ? '已订' : isPastSlot(s) ? '已过' : '¥' + memberPrice(s) }}</span>
                     </button>
                   </div>
                 </div>
@@ -351,6 +355,19 @@ function isBooked(court, slot) {
   return bookedSlots.value.some((o) => o.court_id === courtId && o.time_slot_id === slot.id)
 }
 
+/** 今天已开场的时段不可选：19:23 时，19:00-20:00 及更早的时段全部禁用 */
+function isPastSlot(slot) {
+  if (bookDate.value !== formatDate(0)) return false
+  const matched = String(slot?.start_time || '').match(/^(\d{1,2}):(\d{2})/)
+  if (!matched) return false
+  const now = new Date()
+  const start = new Date(
+    now.getFullYear(), now.getMonth(), now.getDate(),
+    Number(matched[1]), Number(matched[2]), 0, 0,
+  )
+  return now.getTime() >= start.getTime()
+}
+
 /** 棋盘上点一格：等价于「选中这片场地 + 预约这个时段」 */
 function pick(court, slot) {
   if (!venue.value?.is_active) {
@@ -358,6 +375,10 @@ function pick(court, slot) {
     return
   }
   if (isBooked(court, slot)) return
+  if (isPastSlot(slot)) {
+    ElMessage.warning('该时段已开场，请选择更晚的时段')
+    return
+  }
   selectedCourt.value = court
   handleBook(slot)
 }
@@ -742,6 +763,11 @@ onMounted(fetchVenue)
   border: 1px solid var(--border-soft);
 }
 
+.dot--past {
+  background: var(--sunken);
+  border: 1px dashed var(--border-strong);
+}
+
 .dot--member {
   background: var(--accent-soft);
   border: 1px solid var(--accent-line);
@@ -826,13 +852,21 @@ onMounted(fetchVenue)
 }
 
 /* 主色只标"可点"：悬停或键盘聚焦时才点亮 */
-.cell:not(.is-booked):not(.is-off):hover .cell-price,
-.cell:not(.is-booked):not(.is-off):focus-visible .cell-price {
+.cell:not(.is-booked):not(.is-off):not(.is-past):hover .cell-price,
+.cell:not(.is-booked):not(.is-off):not(.is-past):focus-visible .cell-price {
   color: var(--accent);
 }
 
 .cell.is-booked {
   background: var(--sunken);
+  border-color: var(--border-soft);
+  cursor: not-allowed;
+}
+
+/* 今天已开场的时段：虚线灰格，只提示不可点 */
+.cell.is-past {
+  background: var(--sunken);
+  border-style: dashed;
   border-color: var(--border-soft);
   cursor: not-allowed;
 }
@@ -853,7 +887,7 @@ onMounted(fetchVenue)
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .cell:not(.is-booked):not(.is-off):hover {
+  .cell:not(.is-booked):not(.is-off):not(.is-past):hover {
     background: var(--accent-soft);
     border-color: var(--accent);
     transform: translateY(-1px);
@@ -861,7 +895,7 @@ onMounted(fetchVenue)
 }
 
 /* 弹簧按压反馈（第 5 拍）：按下缩一格、松开弹回 */
-.cell:not(.is-booked):not(.is-off):active {
+.cell:not(.is-booked):not(.is-off):not(.is-past):active {
   transform: scale(0.96);
   background: var(--accent-soft);
   border-color: var(--accent);
@@ -1151,6 +1185,14 @@ onMounted(fetchVenue)
     cursor: not-allowed;
   }
 
+  /* 今天已开场的时段：虚线灰块 */
+  .court-chip.is-past {
+    background: var(--sunken);
+    border-style: dashed;
+    border-color: var(--border-soft);
+    cursor: not-allowed;
+  }
+
   .court-chip.is-booked .chip-name,
   .court-chip.is-booked .chip-price {
     color: var(--ink-4);
@@ -1166,7 +1208,7 @@ onMounted(fetchVenue)
   }
 
   /* 弹簧按压反馈（第 5 拍）：触屏按下的即时反馈 */
-  .court-chip:not(.is-booked):not(.is-off):active {
+  .court-chip:not(.is-booked):not(.is-off):not(.is-past):active {
     transform: scale(0.96);
   }
 }
