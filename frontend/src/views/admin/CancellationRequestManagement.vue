@@ -2,7 +2,7 @@
   <div class="page-container">
     <header class="page-header">
       <h2>退场申请</h2>
-      <p>会员在开场前 2 小时内提交的退场申请；审批通过后 5 分钟自动退款</p>
+      <p>会员在时段结束前提交的退场申请；审批通过即退款，超过 5 分钟无人处理自动通过并退款</p>
     </header>
 
     <section class="surface panel">
@@ -10,7 +10,7 @@
         <el-radio-group v-model="statusFilter" @change="handleFilter">
           <el-radio-button value="">全部</el-radio-button>
           <el-radio-button value="pending">待审批</el-radio-button>
-          <el-radio-button value="approved">待退款</el-radio-button>
+          <el-radio-button value="approved">已通过待退款</el-radio-button>
           <el-radio-button value="refunded">已退款</el-radio-button>
           <el-radio-button value="rejected">已驳回</el-radio-button>
         </el-radio-group>
@@ -79,7 +79,7 @@ const loading = ref(false)
 const statusFilter = ref('')
 const query = reactive({ page: 1, page_size: 20 })
 
-const statusLabel = (s) => ({ pending: '待审批', approved: '待退款', rejected: '已驳回', refunded: '已退款' }[s] || s)
+const statusLabel = (s) => ({ pending: '待审批', approved: '已通过待退款', rejected: '已驳回', refunded: '已退款' }[s] || s)
 const statusTag = (s) => ({ pending: 'warning', approved: 'primary', rejected: 'danger', refunded: 'success' }[s] || 'info')
 const formatTime = (t) => (t || '').slice(0, 19).replace('T', ' ')
 
@@ -103,12 +103,12 @@ async function fetchData() {
 async function approve(row) {
   try {
     await ElMessageBox.confirm(
-      `确认通过该退场申请？通过后 5 分钟自动退款 ¥${row.refund_amount}。`,
+      `确认通过该退场申请？通过后立即退款 ¥${row.refund_amount} 到会员余额。`,
       '审批确认',
       { type: 'warning' },
     )
-    await cancellationApi.approve(row.id)
-    ElMessage.success('已通过，5 分钟后自动退款')
+    const res = await cancellationApi.approve(row.id)
+    ElMessage.success(res?.message || '已通过，已退款')
     fetchData()
   } catch {
     // canceled or handled

@@ -20,7 +20,7 @@ from .serializers import (
 )
 from .utils import (
     cancel_expired_pendings, FREE_CANCEL_WINDOW, CANCEL_FEE_RATE,
-    process_due_refunds, REFUND_DELAY,
+    process_cancellation_requests, settle_refund,
 )
 from apps.common.cache import invalidate
 from apps.payments.models import Payment
@@ -258,9 +258,9 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def my(self, request):
-        # 进「我的订单」时顺手把到期的两件事处理掉：
-        # 审批通过满 5 分钟的退场自动退款、超时未支付的订单落库取消（避免「待支付」页签里躺着已结束的订单）
-        process_due_refunds()
+        # 进「我的订单」时顺手把两件事处理掉：
+        # 待审批满 5 分钟的退场自动通过并退款、超时未支付的订单落库取消（避免「待支付」页签里躺着已结束的订单）
+        process_cancellation_requests()
         cancel_expired_pendings()
         qs = self.get_queryset().filter(user=request.user)
         page = self.paginate_queryset(qs)
@@ -327,8 +327,8 @@ class CancellationRequestViewSet(viewsets.ReadOnlyModelViewSet):
         return [IsAuthenticated()]
 
     def get_queryset(self):
-        # 惰性处理到期退款（审批通过 5 分钟后）
-        process_due_refunds()
+        # 惰性处理：待审批超 5 分钟自动通过并退款
+        process_cancellation_requests()
         qs = super().get_queryset()
         if self.request.user.role == 'member':
             qs = qs.filter(user=self.request.user)
@@ -347,9 +347,16 @@ class CancellationRequestViewSet(viewsets.ReadOnlyModelViewSet):
         req.status = CancellationRequest.STATUS_APPROVED
         req.reviewed_by = request.user
         req.reviewed_at = now
-        req.refund_at = now + REFUND_DELAY
+        req.refund_at = now
         req.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'refund_at'])
-        return Response({'code': 200, 'message': '已通过，5 分钟后自动退款'})
+        # 通过即退款：不再等 5 分钟，退款与订单取消在同一事务里完成
+        settled = settle_refund(req.pk, now)
+        refunded = settled.refund_amount if settled else 0
+        return Response({
+            'code': 200,
+            'message': f'已通过，已退款 ¥{refunded}' if refunded > 0 else '已通过，订单已取消',
+            'data': CancellationRequestSerializer(settled or req).data,
+        })
 
     @action(detail=True, methods=['post'])
     @transaction.atomic

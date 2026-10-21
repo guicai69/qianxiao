@@ -110,7 +110,7 @@ class Booking(models.Model):
 
 
 class CancellationRequest(models.Model):
-    """退场申请：会员在开场前 2 小时内提交，前台审批通过后 5 分钟自动退款"""
+    """退场申请：会员在时段结束前提交；前台审批通过即退款，超 5 分钟无人处理自动通过并退款"""
     STATUS_PENDING = 'pending'
     STATUS_APPROVED = 'approved'
     STATUS_REJECTED = 'rejected'
@@ -140,7 +140,8 @@ class CancellationRequest(models.Model):
         related_name='reviewed_cancellation_requests', verbose_name='审批人',
     )
     reviewed_at = models.DateTimeField('审批时间', null=True, blank=True)
-    refund_at = models.DateTimeField('计划退款时间', null=True, blank=True)
+    # 立即退款后与 reviewed_at 相同；保留字段以兼容历史数据与「待退款」查询
+    refund_at = models.DateTimeField('通过退款时间', null=True, blank=True)
     refunded_at = models.DateTimeField('实际退款时间', null=True, blank=True)
     created_at = models.DateTimeField('申请时间', auto_now_add=True)
 

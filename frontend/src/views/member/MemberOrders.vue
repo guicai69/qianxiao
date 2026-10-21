@@ -307,12 +307,12 @@ async function handleCancel(row) {
 async function handleRequestCancel(row) {
   try {
     await ElMessageBox.confirm(
-      "退场申请将提交前台审批，审批通过后 5 分钟自动退款。确定申请？",
+      "退场申请将提交前台审批，通过后立即退款；超过 5 分钟无人处理会自动通过并退款。确定申请？",
       "申请退场",
       { type: "warning", confirmButtonText: "提交申请", cancelButtonText: "取消" }
     )
     await bookingApi.requestCancel(row.id, { reason: "" })
-    ElMessage.success("退场申请已提交，等待前台审批")
+    ElMessage.success("退场申请已提交，等待前台审批（5 分钟未处理自动通过并退款）")
     fetchData()
   } catch {
     // canceled or handled
