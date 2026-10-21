@@ -70,18 +70,22 @@
                 <button
                   type="button"
                   class="quick-chip"
-                  :class="{ 'is-on': bookDate === quickToday }"
+                  :class="{ 'is-on': bookDate === quickToday, 'is-full': isDayFull(quickToday) }"
+                  :disabled="isDayFull(quickToday)"
+                  :title="isDayFull(quickToday) ? '今天已无可约时段' : '查看今天的可约时段'"
                   @click="jumpDate(0)"
                 >
-                  今天
+                  今天<small v-if="isDayFull(quickToday)">已满</small>
                 </button>
                 <button
                   type="button"
                   class="quick-chip"
-                  :class="{ 'is-on': bookDate === quickTomorrow }"
+                  :class="{ 'is-on': bookDate === quickTomorrow, 'is-full': isDayFull(quickTomorrow) }"
+                  :disabled="isDayFull(quickTomorrow)"
+                  :title="isDayFull(quickTomorrow) ? '明天已无可约时段' : '查看明天的可约时段'"
                   @click="jumpDate(1)"
                 >
-                  明天
+                  明天<small v-if="isDayFull(quickTomorrow)">已满</small>
                 </button>
               </div>
               <el-date-picker
@@ -294,6 +298,8 @@ const bookDate = ref('')
 const selectedCourt = ref(null)
 const bookedSlots = ref([])
 const bookedDate = ref('')
+/** 各日期剩余的「可约格子」数：{ 'YYYY-MM-DD': n }，只在预取过的日期上有值 */
+const dayRemaining = ref({})
 const showPayDialog = ref(false)
 const paying = ref(false)
 const coupons = ref([])
@@ -331,7 +337,14 @@ function memberPrice(row) {
 function disabledDate(time) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  return time.getTime() < today.getTime()
+  if (time.getTime() < today.getTime()) return true
+  // 已约满的日期同样不许选（只对预取过的 7 天有效，其余照常可选）
+  const key = `${time.getFullYear()}-${pad(time.getMonth() + 1)}-${pad(time.getDate())}`
+  return dayRemaining.value[key] === 0
+}
+
+function pad(n) {
+  return String(n).padStart(2, '0')
 }
 
 function formatDate(offset = 0) {
@@ -355,9 +368,8 @@ function isBooked(court, slot) {
   return bookedSlots.value.some((o) => o.court_id === courtId && o.time_slot_id === slot.id)
 }
 
-/** 今天已开场的时段不可选：19:23 时，19:00-20:00 及更早的时段全部禁用 */
-function isPastSlot(slot) {
-  if (bookDate.value !== formatDate(0)) return false
+/** 这个时段的开场时间是不是已经过去了（只对「今天」有意义） */
+function slotStarted(slot) {
   const matched = String(slot?.start_time || '').match(/^(\d{1,2}):(\d{2})/)
   if (!matched) return false
   const now = new Date()
@@ -366,6 +378,37 @@ function isPastSlot(slot) {
     Number(matched[1]), Number(matched[2]), 0, 0,
   )
   return now.getTime() >= start.getTime()
+}
+
+/** 今天已开场的时段不可选：19:23 时，19:00-20:00 及更早的时段全部禁用 */
+function isPastSlot(slot) {
+  if (bookDate.value !== formatDate(0)) return false
+  return slotStarted(slot)
+}
+
+/** 这一天是不是一个可约格子都不剩（今天还要扣掉已开场的时段） */
+function isDayFull(dateStr) {
+  return dayRemaining.value[dateStr] === 0
+}
+
+/** 预取未来 7 天占用，算出每天的剩余可约格数，用来把日期按钮标灰 */
+async function fetchDayRemaining() {
+  const venueId = venue.value?.id
+  const cells = courts.value.length * slots.value.length
+  if (!venueId || !cells) return
+  const dates = Array.from({ length: 7 }, (_, i) => formatDate(i))
+  const results = await Promise.allSettled(
+    dates.map((date) => venueApi.availability(venueId, { date })),
+  )
+  const next = {}
+  results.forEach((res, i) => {
+    if (res.status !== 'fulfilled') return
+    const date = dates[i]
+    const occupied = (res.value?.occupied || []).length
+    const past = date === formatDate(0) ? slots.value.filter(slotStarted).length * courts.value.length : 0
+    next[date] = Math.max(cells - occupied - past, 0)
+  })
+  dayRemaining.value = next
 }
 
 /** 棋盘上点一格：等价于「选中这片场地 + 预约这个时段」 */
@@ -391,6 +434,7 @@ async function fetchVenue() {
     bookDate.value = formatDate(0)
     fetchBookings()
     fetchCoupons()
+    fetchDayRemaining()
   } catch {
     ElMessage.error('获取场馆信息失败')
   } finally {
@@ -501,6 +545,7 @@ async function handleBook(slot) {
     showPayDialog.value = true
     ElMessage.success('预约成功，请完成支付')
     fetchBookings()
+    fetchDayRemaining()
   } catch (e) {
     const msg = e?.response?.data?.[0] || e?.response?.data?.message || '预约失败'
     ElMessage.error(msg)
@@ -533,6 +578,7 @@ async function handlePay() {
     stayAfterPay.value = true
     showPayDialog.value = false
     fetchBookings()
+    fetchDayRemaining()
   } catch (e) {
     const msg = e?.response?.data?.message || '支付失败，请检查余额'
     ElMessage.error(msg)
@@ -728,6 +774,31 @@ onMounted(fetchVenue)
   background: var(--accent-soft);
   border-color: var(--accent-line);
   color: var(--accent);
+}
+
+.quick-chip small {
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-4);
+}
+
+/* 当天一个可约格子都不剩：虚线灰底，点不动 */
+.quick-chip.is-full,
+.quick-chip.is-full:hover {
+  background: var(--sunken);
+  border-style: dashed;
+  border-color: var(--border-soft);
+  color: var(--ink-4);
+  cursor: not-allowed;
+}
+
+.quick-chip:disabled {
+  cursor: not-allowed;
+}
+
+.quick-chip:disabled:active {
+  transform: none;
 }
 
 .board-legend {

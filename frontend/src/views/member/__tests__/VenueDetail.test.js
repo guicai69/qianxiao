@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
 vi.mock('vue-router', () => ({
@@ -47,5 +47,35 @@ describe('VenueDetail 场地预订页', () => {
     await new Promise((r) => setTimeout(r, 50))
     expect(wrapper.text()).toContain('测试场馆')
     expect(wrapper.text()).toContain('已停用')
+  })
+
+  it('今天已约满时「今天」按钮禁用并标注已满', async () => {
+    const { venueApi } = await import('@/api/venues')
+    const d = new Date()
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    // 2 片场地 × 1 个时段 = 2 个格子，今天这两个格子都被占满
+    venueApi.detail.mockResolvedValueOnce({
+      id: 2,
+      name: '满场球馆',
+      is_active: true,
+      courts: [{ id: 11, name: 'A场' }, { id: 12, name: 'B场' }],
+      time_slots: [{ id: 21, display: '23:00-23:59', start_time: '23:00', price: 50, is_active: true }],
+    })
+    venueApi.availability.mockImplementation((id, params) => Promise.resolve({
+      occupied: params.date === todayStr
+        ? [{ court_id: 11, time_slot_id: 21 }, { court_id: 12, time_slot_id: 21 }]
+        : [],
+    }))
+
+    const wrapper = mount(VenueDetail, { global: { stubs } })
+    await flushPromises()
+    await new Promise((r) => setTimeout(r, 30))
+    await flushPromises()
+
+    const chips = wrapper.findAll('button.quick-chip')
+    expect(chips.length).toBe(2)
+    expect(chips[0].attributes('disabled')).toBeDefined()
+    expect(chips[0].text()).toContain('已满')
+    expect(chips[1].attributes('disabled')).toBeUndefined()
   })
 })

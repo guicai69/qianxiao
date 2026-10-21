@@ -148,8 +148,11 @@ class VenueViewSet(ProtectedDeleteMixin, IntegrityErrorCreateMixin, viewsets.Mod
         # 纯读接口：过期未支付订单由定时任务 cancel_expired_bookings 清理。
         # 占用列表缓存 30 秒，下单/支付/取消时主动失效
         def compute():
+            # 只返回「页面上真能看到」的占用：停用场地/停用时段的历史订单一律剔除，
+            # 否则前端的「当天还剩几个可约格」会被这些看不见的格子算少
             qs = Booking.objects.filter(
-                court__venue=venue, court__is_active=True, date=bdate,
+                court__venue=venue, court__is_active=True,
+                time_slot__is_active=True, date=bdate,
             ).exclude(status='cancelled')
             return [
                 {'court_id': b.court_id, 'time_slot_id': b.time_slot_id}
