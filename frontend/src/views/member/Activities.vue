@@ -1,16 +1,16 @@
 <template>
   <div class="page">
-    <header class="page-head">
+    <header class="page-head fx-rise" style="--i: 0">
       <h1>活动与课程</h1>
       <p>比赛、培训、教练课统一报名；取消报名自动释放名额。</p>
     </header>
 
-    <div class="chips">
+    <div class="chips fx-rise" style="--i: 1">
       <button
         v-for="t in typeOptions"
         :key="t.key"
         type="button"
-        class="chip"
+        class="chip fx-press"
         :class="{ active: activeType === t.key }"
         @click="activeType = t.key; fetchData()"
       >
@@ -20,11 +20,16 @@
 
     <div v-loading="loading" class="list surface">
       <div v-if="!items.length" class="empty">暂无活动</div>
-      <section v-for="a in items" :key="a.id" class="card">
+      <section
+        v-for="(a, i) in items"
+        :key="a.id"
+        class="card fx-sheen fx-rise"
+        :style="{ '--i': i }"
+      >
         <div class="card-main">
           <div class="card-top">
             <el-tag size="small" round effect="light">{{ typeLabel(a.type) }}</el-tag>
-            <h3 class="title-link" role="link" tabindex="0" @click="goDetail(a)" @keydown.enter="goDetail(a)">
+            <h3 class="title-link fx-underline" role="link" tabindex="0" @click="goDetail(a)" @keydown.enter="goDetail(a)">
               {{ a.title }}
             </h3>
           </div>
@@ -37,7 +42,7 @@
           </div>
         </div>
         <div class="card-side">
-          <el-button round @click="goDetail(a)">详情</el-button>
+          <el-button round class="fx-press" @click="goDetail(a)">详情</el-button>
           <el-button v-if="myStatus(a.id) === 'registered'" type="info" round @click="cancel(a)">
             取消报名
           </el-button>
@@ -51,11 +56,13 @@
     <h2 class="sub">我的报名</h2>
     <div class="list surface">
       <div v-if="!mine.length" class="empty">还没有报名记录</div>
-      <section v-for="r in mine" :key="r.id" class="card">
+      <section v-for="r in mine" :key="r.id" class="card fx-reveal">
         <div class="card-main">
           <div class="card-top">
             <el-tag size="small" round effect="light">{{ r.activity_title }}</el-tag>
-            <el-tag size="small" round effect="plain">{{ statusLabel(r.status) }}</el-tag>
+            <el-tag size="small" round effect="plain" :class="'st-' + r.status">
+              <span class="fx-dot-pulse status-dot" aria-hidden="true"></span>{{ statusLabel(r.status) }}
+            </el-tag>
           </div>
           <div class="meta mono">
             <span>¥{{ money(r.price) }}</span>
@@ -154,4 +161,43 @@ onMounted(fetchData)
 .desc { margin: 6px 0; color: var(--ink-3); font-size: var(--fs-13); }
 .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--ink-4); font-size: var(--fs-12); }
 .sub { margin: 28px 0 12px; font-size: var(--fs-16); color: var(--ink-1); }
+
+/* ==========================================================================
+   2026-10 动效层：状态点 / 错峰入场 / 悬停工艺（只加 class 与过渡）
+   ========================================================================== */
+
+/* 卡片本身没有封面图，白色斜光在浅底上看不见：换成主色的淡扫光 */
+.card {
+  --fx-sheen-color: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/* fx-sheen 需要 overflow: hidden 裁住扫光，卡片右侧又没有内边距，
+   键盘焦点环贴边会被裁掉一点：卡片内的按钮把焦点环收进去 */
+.card :deep(.el-button:focus-visible) {
+  outline-offset: -2px;
+}
+
+/* 状态 tag 里的呼吸点：默认不占位，只有"已报名"这种进行中的状态才亮 */
+.status-dot {
+  display: none;
+  margin-right: 6px;
+  background-color: currentColor;
+  color: inherit;
+}
+
+.st-registered .status-dot {
+  display: inline-block;
+}
+
+/* 描边跟着 tag 的文字色走，而不是 fx-dot-pulse 默认的绿色 */
+.st-registered .status-dot::after {
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* 错峰排队不超过 8 步：列表再长也不会让人干等 */
+  .card.fx-rise {
+    animation-delay: calc(min(var(--i, 0), 8) * 55ms);
+  }
+}
 </style>

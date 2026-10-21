@@ -1,15 +1,15 @@
 <template>
   <div class="profile-page">
-    <header class="page-header">
+    <header class="page-header fx-rise">
       <h2>个人中心</h2>
       <p>账号资料、会员等级与余额充值</p>
     </header>
 
     <div class="profile-grid">
       <!-- 左栏：身份 → 余额 → 等级，一条竖着读的信息流 -->
-      <section class="surface profile-card">
+      <section class="surface profile-card fx-rise fx-glass">
         <div class="identity">
-          <span class="avatar">{{ initial }}</span>
+          <span class="avatar fx-border-glow">{{ initial }}</span>
           <div class="identity-copy">
             <strong>{{ userInfo.nickname || userInfo.phone }}</strong>
             <span>{{ roleLabel(userInfo.role) }}</span>
@@ -20,7 +20,7 @@
           <span class="field-label">账户余额</span>
           <strong class="balance-value mono">¥{{ money(userInfo.balance) }}</strong>
           <p class="balance-note">余额可直接支付场地费用，充值满档另有赠送</p>
-          <el-button type="primary" class="balance-cta" @click="rechargeDialog = true">
+          <el-button type="primary" class="balance-cta fx-press" @click="rechargeDialog = true">
             <el-icon class="el-icon--left"><Wallet /></el-icon>余额充值
           </el-button>
         </div>
@@ -57,13 +57,13 @@
       </section>
 
       <!-- 右栏：资料，用发丝线分行，不做成一格一格的卡片 -->
-      <section class="surface profile-detail">
+      <section class="surface profile-detail fx-rise fx-glass">
         <header class="panel-head">
           <h3>账号资料</h3>
           <span class="panel-note">手机号即登录账号</span>
         </header>
 
-        <dl class="facts">
+        <dl class="facts fx-reveal">
           <div class="fact">
             <dt>手机号</dt>
             <dd class="mono">{{ userInfo.phone }}</dd>
@@ -103,16 +103,16 @@
         </dl>
 
         <div class="profile-actions">
-          <el-button @click="editDialog = true">
+          <el-button class="fx-press" @click="editDialog = true">
             <el-icon class="el-icon--left"><User /></el-icon>修改昵称
           </el-button>
-          <el-button @click="pwdDialog = true">
+          <el-button class="fx-press" @click="pwdDialog = true">
             <el-icon class="el-icon--left"><Lock /></el-icon>修改密码
           </el-button>
-          <el-button type="primary" @click="rechargeDialog = true">
+          <el-button type="primary" class="fx-press" @click="rechargeDialog = true">
             <el-icon class="el-icon--left"><Wallet /></el-icon>余额充值
           </el-button>
-          <el-button @click="feedbackDialog = true">意见反馈</el-button>
+          <el-button class="fx-press" @click="feedbackDialog = true">意见反馈</el-button>
         </div>
       </section>
     </div>
@@ -153,7 +153,7 @@
           v-for="t in rechargeTiers"
           :key="t.amount"
           type="button"
-          class="tier-card"
+          class="tier-card fx-press"
           :class="{ 'is-active': Number(rechargeForm.amount) === t.amount }"
           :aria-pressed="Number(rechargeForm.amount) === t.amount"
           @click="rechargeForm.amount = t.amount"
@@ -737,6 +737,97 @@ onMounted(loadBonusTiers)
 .receipt__note {
   font-size: var(--fs-11);
   color: var(--ink-4);
+}
+
+/* ---------- 动效升级（2026-10） ---------- */
+
+.page-header.fx-rise {
+  --i: 0;
+}
+
+/* 页面底：一层很淡的蓝图网格，只为了让玻璃面板有东西可透 */
+.profile-page {
+  position: relative;
+  isolation: isolate;
+}
+
+.profile-page::before {
+  content: "";
+  position: absolute;
+  top: 88px;
+  left: 0;
+  right: 0;
+  height: 260px;
+  z-index: -1;
+  pointer-events: none;
+  background-image: linear-gradient(90deg, var(--border-soft) 1px, transparent 1px),
+    linear-gradient(180deg, var(--border-soft) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(76% 120% at 50% 0%, #000 0%, transparent 74%);
+  mask-image: radial-gradient(76% 120% at 50% 0%, #000 0%, transparent 74%);
+  opacity: 0.7;
+}
+
+.profile-card.fx-rise {
+  --i: 1;
+}
+
+.profile-detail.fx-rise {
+  --i: 2;
+}
+
+/* 头像：一圈很淡的蓝雾；hover 时 fx-border-glow 的描边转起来 */
+.avatar {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* 等级轨：走过的段从主色过渡到青色，当前等级的点会呼吸 */
+.rail li.is-passed::before {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+}
+
+/* 当前等级的点略大一圈，蓝点 + 呼吸光环，和已通过的实心点分开 */
+.rail li.is-current .rail-dot {
+  top: -1px;
+  left: -1px;
+  width: 14px;
+  height: 14px;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+/* 按钮：按下内缩（fx-press 只过渡 transform，这里补回颜色/投影） */
+.balance-cta.fx-press,
+.profile-actions :deep(.el-button.fx-press),
+.tier-picker .tier-card.fx-press {
+  transition: transform var(--dur-2) var(--ease-out), background-color var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rail li.is-current .rail-dot {
+    animation: tier-dot-breathe 2.8s var(--ease-out) infinite;
+  }
+
+  @keyframes tier-dot-breathe {
+    0%,
+    100% {
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+
+    50% {
+      box-shadow: 0 0 0 8px var(--accent-soft), 0 0 12px var(--fx-glow);
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-page::before {
+    top: 72px;
+    height: 200px;
+    background-size: 48px 48px;
+  }
 }
 
 /* ---------- 断点 ---------- */

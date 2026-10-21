@@ -1,5 +1,8 @@
 <template>
   <div class="member-layout">
+    <!-- 滚动进度：原生 scroll() 时间线驱动，零 JS；不支持就静默不显示 -->
+    <div class="fx-progress" aria-hidden="true"></div>
+
     <!-- 球馆栏：会员端从头到尾一条深色顶栏，跟后台的深色侧栏是同一套语言 -->
     <header class="member-header" >
       <div class="header-inner">
@@ -368,6 +371,88 @@ function handleCommand(cmd) {
 .footer-note {
   font-size: var(--fs-12);
   color: var(--ink-4);
+}
+
+/* ---------- 动效升级（2026-10） ---------- */
+
+/* 顶栏随滚动变玻璃：滚过 140px 后底色转半透明、加模糊与一道浅影 */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    .member-header {
+      animation: header-glass linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 140px;
+    }
+  }
+}
+
+@keyframes header-glass {
+  from {
+    background-color: rgba(238, 242, 248, 1);
+    -webkit-backdrop-filter: blur(0px);
+    backdrop-filter: blur(0px);
+    box-shadow: none;
+  }
+  to {
+    background-color: rgba(243, 246, 251, 0.78);
+    -webkit-backdrop-filter: blur(14px) saturate(1.3);
+    backdrop-filter: blur(14px) saturate(1.3);
+    box-shadow: 0 10px 30px -26px rgba(16, 36, 72, 0.55);
+  }
+}
+
+/* 品牌标记：悬停时像被人翻了一下球拍面 */
+.brand-mark {
+  transition: transform var(--dur-3) var(--ease-spring), border-color var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .brand:hover .brand-mark {
+    transform: rotate(-4deg) scale(1.05);
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+  }
+}
+
+/* 导航：当前项垫一层很淡的底色，悬停时下划线先长一半 */
+.nav-link.active {
+  background: var(--accent-soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .nav-link:hover::after {
+    transform: scaleX(0.55);
+  }
+}
+
+.nav-link.active::after {
+  box-shadow: 0 0 10px var(--accent-line);
+}
+
+/* 头像：悬停轻轻外扩 */
+.avatar {
+  transition: box-shadow var(--dur-3) var(--ease-out), transform var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .user-entry:hover .avatar {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}
+
+/* 页脚：一条极细的渐变分隔线代替灰线 */
+.member-footer {
+  position: relative;
+}
+
+.member-footer::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-line) 22%, var(--border) 60%, transparent);
 }
 
 /* ---------- 断点 ---------- */

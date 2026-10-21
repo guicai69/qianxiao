@@ -1,11 +1,11 @@
 <template>
   <div class="orders-page">
-    <header class="page-header">
+    <header class="page-header fx-rise">
       <h2>我的订单</h2>
       <p>预约记录、支付与取消都在这一页完成，金额是折后实付</p>
     </header>
 
-    <section class="surface orders-panel">
+    <section class="surface orders-panel fx-rise">
       <header class="panel-head">
         <h3>订单流水</h3>
         <div class="head-right">
@@ -30,7 +30,8 @@
 
       <template v-else>
         <ul v-if="list.length" class="order-list" :class="{ 'is-busy': loading }">
-          <li v-for="row in list" :key="row.id" class="order">
+          <li v-for="row in list" :key="row.id" class="order" :class="`order--${orderStateTag(row)}`">
+            <span class="order-bar" aria-hidden="true" />
             <div class="order-info">
               <div class="order-head">
                 <h4>{{ row.venue_name }}</h4>
@@ -57,7 +58,7 @@
             </div>
 
             <div class="order-price">
-              <strong class="price-final mono">¥{{ money(row.amount) }}</strong>
+              <strong class="price-final mono fx-tabular">¥{{ money(row.amount) }}</strong>
               <span v-if="hasDiscount(row)" class="price-calc mono">
                 原价 ¥{{ money(row.original_amount) }} · {{ discountText(row.discount_rate) }}
               </span>
@@ -92,6 +93,7 @@
         </ul>
 
         <div v-else class="empty-state">
+          <span class="empty-court" aria-hidden="true" />
           <strong>还没有这类订单</strong>
           <span>挑一座球馆、选一个时段下单，记录就会出现在这里。</span>
         </div>
@@ -588,6 +590,207 @@ onMounted(() => {
   min-height: 44px;
   margin: 0;
   padding: 10px 14px;
+}
+
+/* ---------- 动效升级（2026-10） ---------- */
+
+/* 首屏节奏：页头先落，面板随后 */
+.page-header.fx-rise {
+  --i: 0;
+}
+
+.orders-panel.fx-rise {
+  --i: 1;
+}
+
+/* 订单行：整行可 hover，位移交给自写规则（入场动画只用 backwards，结束即让位） */
+.order {
+  position: relative;
+  isolation: isolate;
+  transition: background-color var(--dur-2) var(--ease-out), box-shadow var(--dur-3) var(--ease-out),
+    transform var(--dur-3) var(--ease-out);
+}
+
+.price-final {
+  transition: color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .order:hover {
+    z-index: 1;
+    background-color: var(--surface-2);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+
+  .order:hover .price-final {
+    color: var(--accent);
+  }
+}
+
+/* 状态色条：贴左缘的一条细线，颜色跟状态走 */
+.order-bar {
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--bar-color, var(--border-strong));
+  pointer-events: none;
+  transform-origin: center;
+}
+
+.order--success {
+  --bar-color: var(--up);
+}
+
+.order--warning {
+  --bar-color: var(--warn);
+}
+
+.order--primary {
+  --bar-color: var(--accent);
+}
+
+.order--danger {
+  --bar-color: var(--down);
+}
+
+.order--info {
+  --bar-color: var(--ink-4);
+}
+
+.order--info .order-bar {
+  opacity: 0.45;
+}
+
+/* 空态：一张俯视的半场记号，落在文案背后，慢慢呼吸转动 */
+.empty-state {
+  position: relative;
+  isolation: isolate;
+}
+
+.empty-court {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: min(320px, calc(100% - 24px));
+  height: 128px;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.6;
+}
+
+.empty-court::before {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+}
+
+.empty-court::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  background: var(--border-soft);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* 列表逐个入场：只播一次，fill 用 backwards，别把 transform 钉死 */
+  .order {
+    animation: order-in var(--dur-4) var(--ease-expo) backwards;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+
+  .order:nth-child(1) {
+    --i: 0;
+  }
+
+  .order:nth-child(2) {
+    --i: 1;
+  }
+
+  .order:nth-child(3) {
+    --i: 2;
+  }
+
+  .order:nth-child(4) {
+    --i: 3;
+  }
+
+  .order:nth-child(5) {
+    --i: 4;
+  }
+
+  .order:nth-child(6) {
+    --i: 5;
+  }
+
+  .order:nth-child(n + 7) {
+    --i: 6;
+  }
+
+  /* 未结束的两态（待支付=warning / 已支付=success）色条轻微呼吸 */
+  .order--warning .order-bar,
+  .order--success .order-bar {
+    animation: order-bar-pulse 3.2s var(--ease-out) infinite;
+  }
+
+  .empty-court {
+    animation: empty-court-drift 16s var(--ease-out) infinite;
+  }
+
+  @keyframes order-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes order-bar-pulse {
+    0%,
+    100% {
+      opacity: 0.4;
+      transform: scaleY(0.62);
+    }
+
+    50% {
+      opacity: 1;
+      transform: scaleY(1);
+    }
+  }
+
+  @keyframes empty-court-drift {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 0.45;
+    }
+
+    50% {
+      transform: translateY(-6px) scale(1.02);
+      opacity: 0.8;
+    }
+  }
+}
+
+/* 减弱动效：装饰记号直接撤掉，只留文案 */
+@media (prefers-reduced-motion: reduce) {
+  .empty-court {
+    display: none;
+  }
 }
 
 /* ---------- 断点 ---------- */

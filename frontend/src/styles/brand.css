@@ -501,8 +501,11 @@
 /* ---------- 逐格落位：棋盘 / 列表按行依次到位 ---------- */
 
 @media (prefers-reduced-motion: no-preference) {
+  /* fill-mode 用 backwards 而不是 both：both 会在动画结束后继续占用 transform，
+     把元素自己的 hover 抬升与 :active 缩放整段吃掉（棋盘格、列表行都中招）。
+     backwards 只负责延迟期从起始位起步，动画一结束就把 transform 交回普通规则。 */
   .drop-in {
-    animation: drop-in 520ms var(--ease-out) both;
+    animation: drop-in 520ms var(--ease-out) backwards;
     animation-delay: calc(var(--i, 0) * 22ms);
   }
 }

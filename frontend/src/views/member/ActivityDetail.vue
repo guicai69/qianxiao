@@ -11,7 +11,7 @@
     </div>
 
     <template v-else-if="activity">
-      <section class="surface head">
+      <section class="surface head fx-rise" style="--i: 0">
         <div class="head-top">
           <div class="head-tags">
             <el-tag size="small" round effect="light">{{ typeLabel(activity.type) }}</el-tag>
@@ -43,7 +43,7 @@
             <span class="fact-value mono accent">¥{{ money(activity.price) }}</span>
           </div>
           <div class="fact fact--wide">
-            <span class="fact-label">报名进度 {{ activity.registered }}/{{ activity.capacity }}</span>
+            <span class="fact-label fx-tabular">报名进度 {{ activity.registered }}/{{ activity.capacity }}</span>
             <el-progress
               :percentage="pct"
               :stroke-width="10"
@@ -54,7 +54,7 @@
         </div>
 
         <div class="head-actions">
-          <el-button v-if="canRegister" type="primary" round :loading="acting" @click="register">
+          <el-button v-if="canRegister" type="primary" round class="fx-border-glow fx-press" :loading="acting" @click="register">
             立即报名
           </el-button>
           <el-button v-else-if="myStatus === 'registered'" type="info" round :loading="acting" @click="cancelReg">
@@ -64,7 +64,7 @@
         </div>
       </section>
 
-      <section class="surface rules">
+      <section class="surface rules fx-reveal-clip">
         <h2>参与须知</h2>
         <ul>
           <li>报名成功后请按时到场，入场时由前台在名单中签到核销。</li>
@@ -183,4 +183,36 @@ onMounted(fetchData)
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 20px; color: var(--ink-3); }
 .empty-state strong { font-size: var(--fs-16); color: var(--ink-1); }
 .accent { color: var(--accent); }
+
+/* ==========================================================================
+   2026-10 动效层：进度条渐变 + 主 CTA 描边光（只加 class 与过渡）
+   ========================================================================== */
+
+/* 报名进度：主蓝到青的渐变；名额满时仍走 EP 的红色异常态（不覆盖它） */
+.facts :deep(.el-progress:not(.is-exception) .el-progress-bar__inner) {
+  background-image: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* 进度从 0 长到当前值：宽度仍由 EP 控制，这里只补一个进场 */
+  .facts :deep(.el-progress-bar__inner) {
+    transition: width var(--dur-5) var(--ease-expo);
+    transform-origin: left center;
+    animation: ad-progress-grow var(--dur-6) var(--ease-expo) both;
+  }
+
+  @keyframes ad-progress-grow {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  /* 主 CTA：按下时比 EP 默认更实一点，让描边光有"被按下去"的回应 */
+  .head-actions :deep(.fx-press:active) {
+    transform: scale(0.97);
+  }
+}
 </style>

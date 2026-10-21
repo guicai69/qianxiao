@@ -616,3 +616,113 @@
   border-top-color: var(--accent) !important;
   border-left-color: var(--accent) !important;
 }
+
+/* ==========================================================================
+   动效层（2026-10）：只加交互反馈的做工，不改任何布局与尺寸
+   全部包在 prefers-reduced-motion: no-preference 里，关掉动效即回到静止态
+   ========================================================================== */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* ---------- 按钮：悬停微光、按下半像素下沉 ---------- */
+  .el-button {
+    transition: background-color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out),
+      box-shadow var(--dur-3) var(--ease-out), transform var(--dur-1) var(--ease-out);
+  }
+
+  /* :where() 把选择器权重压到 0,2,0：与 .fx-press:active 同级，
+     而 motion.css 在其后导入，于是按钮上挂 fx-press 时以工具箱的按压为准 */
+  :where(.el-button):not(.is-disabled):active {
+    transform: translateY(0.5px) scale(0.996);
+  }
+
+  .el-button--primary:not(.is-disabled):hover {
+    box-shadow: 0 10px 22px -14px rgba(26, 95, 208, 0.75);
+  }
+
+  /* ---------- 表格：行悬停有颜色过渡，焦点行左侧一道蓝线 ---------- */
+  .el-table .el-table__body td.el-table__cell {
+    transition: background-color var(--dur-2) var(--ease-out);
+  }
+
+  .el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell {
+    background-color: rgba(26, 95, 208, 0.055);
+  }
+
+  /* ---------- 弹窗：淡入 + 上浮 + 极轻的失焦清晰 ---------- */
+  .dialog-fade-enter-active .el-overlay-dialog {
+    animation: ep-dialog-in 320ms var(--ease-expo) both;
+  }
+
+  .dialog-fade-leave-active .el-overlay-dialog {
+    animation: ep-dialog-out 180ms var(--ease-out) both;
+  }
+
+  /* 消息确认框：同样的一套语言，幅度更小 */
+  .el-overlay-message-box .el-message-box {
+    animation: ep-dialog-in 280ms var(--ease-expo) both;
+  }
+
+  /* 抽屉：从侧面推进来时带一点缓动 */
+  .el-drawer {
+    transition: transform var(--dur-3) var(--ease-expo);
+  }
+
+  /* ---------- 下拉菜单 / 分页 / 标签：悬停有回弹 ---------- */
+  .el-dropdown-menu__item,
+  .el-select-dropdown__item {
+    transition: background-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out);
+  }
+
+  .el-pagination.is-background .el-pager li,
+  .el-pagination.is-background .btn-prev,
+  .el-pagination.is-background .btn-next {
+    transition: background-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out),
+      transform var(--dur-1) var(--ease-out);
+  }
+
+  .el-pagination.is-background .el-pager li:not(.is-active):active {
+    transform: scale(0.94);
+  }
+
+  .el-tag {
+    transition: background-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out),
+      border-color var(--dur-2) var(--ease-out);
+  }
+
+  /* ---------- 输入框：聚焦时主色光晕展开（不是硬边框跳变） ---------- */
+  .el-input__wrapper,
+  .el-textarea__inner {
+    transition: box-shadow var(--dur-3) var(--ease-out), background-color var(--dur-2) var(--ease-out);
+  }
+
+  .el-input__wrapper.is-focus,
+  .el-textarea__inner:focus {
+    box-shadow: 0 0 0 1px var(--accent) inset, 0 0 0 4px var(--accent-soft);
+  }
+}
+
+@keyframes ep-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.986);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes ep-dialog-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.992);
+  }
+}
+

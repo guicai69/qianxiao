@@ -1,13 +1,18 @@
 <template>
   <div class="dashboard-page">
-    <div class="page-header">
+    <div class="page-header fx-rise">
       <h2>经营概况</h2>
       <p>今日营收与预约、场馆场地存量，统计接口实时汇总</p>
     </div>
 
     <!-- 一层：四个主指标磁贴 -->
     <section class="kpi-row">
-      <article v-for="(tile, i) in primaryTiles" :key="tile.label" class="kpi">
+      <article
+        v-for="(tile, i) in primaryTiles"
+        :key="tile.label"
+        class="kpi fx-rise fx-spot fx-sheen"
+        @pointermove="trackSpot"
+      >
         <span class="kpi__icon" aria-hidden="true">
           <el-icon :size="12"><component :is="tile.icon" /></el-icon>
         </span>
@@ -24,7 +29,7 @@
     </section>
 
     <!-- 二层：次要指标用发丝线规格带，不再是卡片 -->
-    <section class="spec-band">
+    <section class="spec-band fx-rise">
       <div v-for="(item, i) in secondarySpecs" :key="item.label" class="spec">
         <div
           class="spec__num"
@@ -39,7 +44,7 @@
 
     <!-- 图表：两张并排，趋势图通栏 -->
     <section class="chart-grid">
-      <article class="panel">
+      <article class="panel fx-reveal">
         <header class="panel__head">
           <h3>各场馆场地数</h3>
           <span class="caps">按场馆</span>
@@ -50,7 +55,7 @@
         </div>
       </article>
 
-      <article class="panel">
+      <article class="panel fx-reveal">
         <header class="panel__head">
           <h3>场馆状态分布</h3>
           <span class="caps">当前</span>
@@ -61,7 +66,7 @@
         </div>
       </article>
 
-      <article class="panel panel--wide">
+      <article class="panel panel--wide fx-reveal">
         <header class="panel__head">
           <h3>近 7 日营收趋势</h3>
           <span class="caps">已支付订单</span>
@@ -72,7 +77,7 @@
         </div>
       </article>
 
-      <article class="panel panel--wide">
+      <article class="panel panel--wide fx-reveal">
         <header class="panel__head">
           <h3>热门时段 Top</h3>
           <span class="caps">预约量</span>
@@ -84,7 +89,7 @@
       </article>
     </section>
 
-    <article class="panel">
+    <article class="panel fx-reveal">
       <header class="panel__head">
         <h3>场馆列表</h3>
         <el-button link type="primary" @click="$router.push('/admin/venues')">查看全部</el-button>
@@ -392,6 +397,16 @@ function initSlotsChart() {
   })
 }
 
+/* 装饰：把指针坐标写进 --mx / --my，供 .fx-spot 的冷光跟随。
+   不参与任何数据计算，指针事件上纯 DOM 写属性，不触发重渲染 */
+function trackSpot(event) {
+  const el = event.currentTarget
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  el.style.setProperty("--mx", `${event.clientX - rect.left}px`)
+  el.style.setProperty("--my", `${event.clientY - rect.top}px`)
+}
+
 function handleResize() {
   barChart?.resize()
   pieChart?.resize()
@@ -599,6 +614,49 @@ onUnmounted(() => {
 
   .spec-band .spec {
     padding: 14px 16px;
+  }
+}
+
+/* ==========================================================================
+   动效（2026-10）：入场节拍 → 磁贴跟手冷光 → 图表卡滚动入场
+   ECharts 配置、数据流、交互一行未动
+   ========================================================================== */
+
+/* 首屏节拍：标题 → 四块磁贴（70ms 一步） → 规格带 */
+.page-header { --i: 0; }
+.kpi-row .kpi { --i: 1; }
+.kpi-row .kpi:nth-child(2) { --i: 2; }
+.kpi-row .kpi:nth-child(3) { --i: 3; }
+.kpi-row .kpi:nth-child(4) { --i: 4; }
+.spec-band { --i: 5; }
+
+/* 白底上工具箱默认的白色斜光看不见，磁贴换成主色淡光 */
+.kpi {
+  --fx-sheen-color: var(--accent-line);
+  transition: border-color var(--dur-2) var(--ease-out), box-shadow var(--dur-3) var(--ease-out);
+}
+
+/* 冷光铺在文字底下：背景会亮，数字不被染色 */
+.kpi__label,
+.kpi__num,
+.kpi__ctx {
+  position: relative;
+  z-index: 1;
+}
+
+.kpi__icon {
+  transition: color var(--dur-2) var(--ease-out), opacity var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .kpi:hover {
+    border-color: var(--accent-line);
+    box-shadow: var(--shadow-md);
+  }
+
+  .kpi:hover .kpi__icon {
+    color: var(--accent);
+    opacity: 0.8;
   }
 }
 </style>

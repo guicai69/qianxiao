@@ -1,0 +1,606 @@
+/* ==========================================================================
+   motion v2 —— 动效与微交互层（2026-10 视觉升级）
+   取向：Aceternity / MagicUI / ReactBits 那套"高级动效"的纯 CSS 实现，
+        顺手抄了它们最耐看的几招（shiny border、sheen sweep、marquee、
+        aurora、scroll progress、spotlight、text reveal、skeleton shimmer），
+        但全部按本项目的蓝白蓝图语言重写，不引入任何新依赖。
+   三条铁律：
+     1) 只加不删 —— 新类一律 fx- 前缀，不覆盖 brand.css 的 reveal / rise /
+        roll / drop-in 语义，旧页面不动也照常工作；
+     2) 终态优先 —— 所有动画都是"作者状态=已就位"，从"没就位"进场。
+        浏览器不支持 animation-timeline 时，元素直接停在正常状态；
+     3) 减少动态效果 —— base.css 已有全局兜底，这里对装饰层再兜一次。
+   ==========================================================================
+
+   工具箱速查（页面里直接用 class）
+     入场   .fx-reveal（滚动淡入上移） .fx-reveal-clip（从下裁切揭开）
+            .fx-reveal-blur（失焦→清晰） .fx-rise（首屏错峰，配 --i）
+     悬停   .fx-sheen（斜光扫过） .fx-lift（抬起+投影） .fx-zoom（媒体 zoom）
+            .fx-underline（下划线展开） .fx-hover-parent + .fx-nudge（箭头位移）
+            .fx-border-glow（渐变描边旋转） .fx-spot（指针冷光）
+            .fx-press（按钮压感） .fx-tilt-wrap + .fx-tilt（轻 3D）
+     横滚   .fx-marquee > .fx-marquee__track（内容需复制两份，第二份 aria-hidden）
+     氛围   .fx-aurora + .fx-aurora__blob / .fx-aurora__blob--b / --c
+     进度   .fx-progress（页面顶部滚动进度，零 JS）
+     玻璃   .fx-glass（半透明+模糊，深色面自动换色）
+     骨架   .fx-skeleton（加载闪光）
+     文字   .fx-ink-gradient（标题渐变墨） .fx-tabular（等宽数字）
+     状态   .fx-dot-pulse（呼吸点）
+   ========================================================================== */
+
+:root {
+  /* 动效刻度补两档（tokens.css 已有 --dur-1..4 / --ease-out / --ease-spring） */
+  --dur-5: 760ms;
+  --dur-6: 1100ms;
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* 冷光与玻璃的平面色（deep 面覆写为更亮的版本） */
+  --fx-glow: rgba(26, 95, 208, 0.16);
+  --fx-glow-2: rgba(14, 107, 134, 0.14);
+  --fx-sheen-color: rgba(255, 255, 255, 0.62);
+  --fx-glass-bg: rgba(252, 253, 255, 0.72);
+  --fx-glass-line: rgba(16, 32, 64, 0.1);
+  --fx-aurora-1: rgba(26, 95, 208, 0.2);
+  --fx-aurora-2: rgba(14, 107, 134, 0.16);
+  --fx-aurora-3: rgba(120, 160, 255, 0.18);
+}
+
+[data-plane="deep"] {
+  --fx-glow: rgba(91, 157, 255, 0.26);
+  --fx-glow-2: rgba(79, 209, 232, 0.2);
+  --fx-sheen-color: rgba(255, 255, 255, 0.24);
+  --fx-glass-bg: rgba(18, 28, 48, 0.58);
+  --fx-glass-line: rgba(255, 255, 255, 0.1);
+  --fx-aurora-1: rgba(91, 157, 255, 0.34);
+  --fx-aurora-2: rgba(79, 209, 232, 0.24);
+  --fx-aurora-3: rgba(122, 92, 255, 0.26);
+}
+
+/* 渐变描边要转的那个角度（Chromium 115+；不支持的浏览器描边静止不动，不影响可读性） */
+@property --fx-ang {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* ==========================================================================
+   1. 入场：滚动驱动，零 JS（不支持 view() 时自动停在终态）
+   ========================================================================== */
+
+@keyframes fx-blur-up {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes fx-clip-up {
+  from {
+    opacity: 0;
+    clip-path: inset(38% 0 0 0);
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: none;
+  }
+}
+
+@keyframes fx-rise-stagger {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 首屏错峰：靠 --i 排队，70ms 一步 */
+.fx-rise {
+  animation: fx-rise-stagger var(--dur-5) var(--ease-expo) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .fx-reveal {
+      animation: fx-blur-up linear both;
+      animation-timeline: view();
+      animation-range: entry 2% cover 32%;
+    }
+
+    .fx-reveal-clip {
+      animation: fx-clip-up linear both;
+      animation-timeline: view();
+      animation-range: entry 4% cover 36%;
+    }
+
+    .fx-reveal-blur {
+      animation: fx-blur-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 42%;
+      animation-timing-function: linear;
+    }
+  }
+}
+
+/* ==========================================================================
+   2. 悬停工艺
+   ========================================================================== */
+
+/* 斜光扫过：卡片/按钮上最便宜也最贵气的一招 */
+.fx-sheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.fx-sheen::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: 0;
+  width: 46%;
+  height: 140%;
+  pointer-events: none;
+  z-index: 3;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    var(--fx-sheen-color) 46%,
+    transparent 100%
+  );
+  opacity: 0;
+  transform: translateX(-180%) skewX(-16deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fx-sheen:hover::after {
+    opacity: 0.9;
+    animation: fx-sheen-run 900ms var(--ease-out);
+  }
+}
+
+@keyframes fx-sheen-run {
+  from {
+    transform: translateX(-180%) skewX(-16deg);
+  }
+  to {
+    transform: translateX(340%) skewX(-16deg);
+  }
+}
+
+/* 抬起：不给 .frame 用（它自己有 hover 变换），给普通卡片、磁贴用 */
+.fx-lift {
+  transition: transform var(--dur-3) var(--ease-out), box-shadow var(--dur-3) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fx-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+/* 媒体 zoom：图片在一层裁切里放大，外加一点点提亮 */
+.fx-zoom img {
+  transition: transform var(--dur-5) var(--ease-expo), filter var(--dur-3) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fx-zoom:hover img {
+    transform: scale(1.055);
+    filter: saturate(1) contrast(1.04) brightness(1.04);
+  }
+}
+
+/* 下划线从左边长出来 */
+.fx-underline {
+  position: relative;
+}
+
+.fx-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-3) var(--ease-out);
+}
+
+.fx-underline:hover::after,
+.fx-underline:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* 箭头小位移：父级 hover 时子级滑一点，指针语言统一 */
+.fx-nudge {
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.fx-hover-parent:hover .fx-nudge {
+  transform: translateX(4px);
+}
+
+/* 渐变描边旋转（MagicUI shiny border 的纯 CSS 版） */
+.fx-border-glow {
+  position: relative;
+}
+
+.fx-border-glow::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 3;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  opacity: 0;
+  background: conic-gradient(
+    from var(--fx-ang),
+    transparent 0deg 210deg,
+    rgba(26, 95, 208, 0.55) 268deg,
+    rgba(14, 107, 134, 0.45) 316deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  transition: opacity var(--dur-3) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fx-border-glow:hover::after,
+  .fx-border-glow:focus-visible::after {
+    opacity: 1;
+    animation: fx-ang-spin 3.4s linear infinite;
+  }
+}
+
+@keyframes fx-ang-spin {
+  to {
+    --fx-ang: 360deg;
+  }
+}
+
+/* 指针冷光：--mx / --my 由页面用 pointermove 写，不写就停在顶部中间 */
+.fx-spot {
+  position: relative;
+  isolation: isolate;
+}
+
+.fx-spot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* 配合 .fx-spot 的 isolation: isolate：负层只在卡片背景之上、内容之下，
+     冷光不会给文字上色，页面也不必再给内容补 z-index */
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  background: radial-gradient(
+    320px circle at var(--mx, 50%) var(--my, 0%),
+    var(--fx-glow),
+    transparent 70%
+  );
+  transition: opacity var(--dur-3) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fx-spot:hover::before {
+    opacity: 1;
+  }
+}
+
+/* 压感：按下时轻微内缩，替代没有反馈的默认按钮 */
+.fx-press {
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.fx-press:active {
+  transform: scale(0.975);
+}
+
+/* 轻 3D：父级 perspective，子级 hover 时偏一点。鼠标离开自动回位 */
+.fx-tilt-wrap {
+  perspective: 900px;
+}
+
+.fx-tilt {
+  transform-style: preserve-3d;
+  transition: transform var(--dur-5) var(--ease-expo);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fx-tilt-wrap:hover .fx-tilt {
+    transform: rotateX(2.2deg) rotateY(-3deg) translateY(-4px);
+  }
+}
+
+/* ==========================================================================
+   3. 无限横滚（内容要复制两份，第二份 aria-hidden="true"）
+   ========================================================================== */
+
+.fx-marquee {
+  position: relative;
+  overflow: hidden;
+  --fx-speed: 34s;
+  --fx-gap: 44px;
+  mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+}
+
+.fx-marquee__track {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  gap: var(--fx-gap);
+  animation: fx-marquee-run var(--fx-speed) linear infinite;
+  will-change: transform;
+}
+
+.fx-marquee:hover .fx-marquee__track,
+.fx-marquee:focus-within .fx-marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes fx-marquee-run {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* ==========================================================================
+   4. 氛围：极光。只放在首屏/登录这类"换幕"的大面上，内容区禁止
+   ========================================================================== */
+
+.fx-aurora {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.fx-aurora__blob {
+  position: absolute;
+  left: -4%;
+  top: 8%;
+  width: clamp(240px, 34vw, 520px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.85;
+  background: radial-gradient(circle at 50% 50%, var(--fx-aurora-1), transparent 68%);
+  animation: fx-drift-a 26s var(--ease-quint) infinite alternate;
+}
+
+.fx-aurora__blob--b {
+  /* 基类给了 left，这里必须显式归零，否则 left+right 过约束、right 被忽略，
+     三团光会全挤到左上角 */
+  left: auto;
+  right: -6%;
+  top: -12%;
+  width: clamp(220px, 30vw, 460px);
+  background: radial-gradient(circle at 50% 50%, var(--fx-aurora-2), transparent 70%);
+  animation: fx-drift-b 31s var(--ease-quint) infinite alternate;
+}
+
+.fx-aurora__blob--c {
+  /* 同上：基类的 top 也要归零，否则 bottom 失效 */
+  top: auto;
+  left: 26%;
+  bottom: -18%;
+  width: clamp(200px, 26vw, 400px);
+  background: radial-gradient(circle at 50% 50%, var(--fx-aurora-3), transparent 72%);
+  animation: fx-drift-c 23s var(--ease-quint) infinite alternate;
+}
+
+@keyframes fx-drift-a {
+  from {
+    transform: translate3d(-6%, -4%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(10%, 8%, 0) scale(1.14);
+  }
+}
+
+@keyframes fx-drift-b {
+  from {
+    transform: translate3d(4%, 6%, 0) scale(1.06);
+  }
+  to {
+    transform: translate3d(-8%, -6%, 0) scale(0.94);
+  }
+}
+
+@keyframes fx-drift-c {
+  from {
+    transform: translate3d(0, 4%, 0) scale(0.96);
+  }
+  to {
+    transform: translate3d(-10%, -8%, 0) scale(1.1);
+  }
+}
+
+/* ==========================================================================
+   5. 滚动进度条（原生滚动驱动，零 JS；不支持就静默隐藏）
+   ========================================================================== */
+
+.fx-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 45;
+  pointer-events: none;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 12px var(--fx-glow);
+}
+
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .fx-progress {
+      animation: fx-progress-grow linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+
+@keyframes fx-progress-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ==========================================================================
+   6. 玻璃、骨架、文字与状态
+   ========================================================================== */
+
+.fx-glass {
+  background: var(--fx-glass-bg);
+  border-color: var(--fx-glass-line);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  backdrop-filter: blur(14px) saturate(1.35);
+}
+
+/* 不支持 backdrop-filter 时退回实底，避免文字糊在图片上 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .fx-glass {
+    background: var(--surface);
+  }
+}
+
+.fx-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.fx-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 24%, rgba(255, 255, 255, 0.72) 50%, transparent 76%);
+  transform: translateX(-100%);
+  animation: fx-shimmer 1.5s var(--ease-out) infinite;
+}
+
+@keyframes fx-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+[data-plane="deep"] .fx-skeleton {
+  background: var(--surface-2);
+}
+
+[data-plane="deep"] .fx-skeleton::after {
+  background: linear-gradient(100deg, transparent 24%, rgba(255, 255, 255, 0.1) 50%, transparent 76%);
+}
+
+.fx-ink-gradient {
+  background: linear-gradient(102deg, var(--ink-1) 8%, var(--accent) 58%, var(--accent-2) 96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.fx-tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.fx-dot-pulse {
+  position: relative;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  /* 默认健康绿；页面需要别的语境时只覆盖 --fx-dot-color 一个变量即可 */
+  background: var(--fx-dot-color, var(--up));
+  flex: none;
+}
+
+.fx-dot-pulse::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  color: var(--fx-dot-color, var(--up));
+  border: 1px solid currentColor;
+  animation: fx-dot 2.4s var(--ease-out) infinite;
+}
+
+@keyframes fx-dot {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.7);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+/* ==========================================================================
+   7. 减少动态效果：装饰层直接撤掉，进场元素停在终态
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-aurora,
+  .fx-progress,
+  .fx-skeleton::after,
+  .fx-dot-pulse::after {
+    display: none;
+  }
+
+  .fx-sheen::after,
+  .fx-spot::before,
+  .fx-border-glow::after {
+    display: none;
+  }
+
+  .fx-reveal,
+  .fx-reveal-clip,
+  .fx-reveal-blur,
+  .fx-rise,
+  .fx-marquee__track {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+    filter: none;
+    clip-path: none;
+  }
+}

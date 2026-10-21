@@ -13,7 +13,7 @@
 
     <template v-else-if="venue">
       <!-- 场馆抬头：名字、地址、电话，加一张球场细节图 -->
-      <section class="venue-head surface">
+      <section class="venue-head surface fx-reveal">
         <div class="head-photo">
           <img
             src="/img/venue-detail-court.jpg"
@@ -69,7 +69,7 @@
               <div class="date-quick">
                 <button
                   type="button"
-                  class="quick-chip"
+                  class="quick-chip fx-press"
                   :class="{ 'is-on': bookDate === quickToday, 'is-full': isDayFull(quickToday) }"
                   :disabled="isDayFull(quickToday)"
                   :title="isDayFull(quickToday) ? '今天已无可约时段' : '查看今天的可约时段'"
@@ -79,7 +79,7 @@
                 </button>
                 <button
                   type="button"
-                  class="quick-chip"
+                  class="quick-chip fx-press"
                   :class="{ 'is-on': bookDate === quickTomorrow, 'is-full': isDayFull(quickTomorrow) }"
                   :disabled="isDayFull(quickTomorrow)"
                   :title="isDayFull(quickTomorrow) ? '明天已无可约时段' : '查看明天的可约时段'"
@@ -136,7 +136,7 @@
                     v-for="c in courts"
                     :key="c.id + '-' + s.id"
                     type="button"
-                    class="cell drop-in"
+                    class="cell drop-in fx-press"
                     :style="{ '--i': row }"
                     :class="{ 'is-booked': isBooked(c, s), 'is-past': isPastSlot(s), 'is-off': !venue.is_active }"
                     :disabled="isBooked(c, s) || isPastSlot(s) || !venue.is_active"
@@ -159,7 +159,7 @@
                       v-for="c in courts"
                       :key="'m' + c.id + '-' + s.id"
                       type="button"
-                      class="court-chip"
+                      class="court-chip fx-press"
                       :class="{ 'is-booked': isBooked(c, s), 'is-past': isPastSlot(s), 'is-off': !venue.is_active }"
                       :disabled="isBooked(c, s) || isPastSlot(s) || !venue.is_active"
                       :aria-label="`${c.name} ${s.display} ${isBooked(c, s) ? '已预约' : isPastSlot(s) ? '已过时段' : '可预约'}`"
@@ -177,7 +177,7 @@
 
         <!-- 侧栏：照片 + 会员小票 -->
         <aside class="detail-side">
-          <div class="side-photo surface">
+          <div class="side-photo surface fx-reveal">
             <img
               src="/img/venue-detail-net.jpg"
               alt="球馆看台与木地板"
@@ -188,11 +188,11 @@
             <span class="side-photo-grade"></span>
           </div>
 
-          <section class="receipt surface">
+          <section class="receipt surface fx-glass fx-reveal">
             <h3 class="receipt-title">{{ levelLabel }}</h3>
             <div class="receipt-row">
               <span>场地折扣</span>
-              <strong>{{ discountText(discountRate) }}</strong>
+              <strong class="fx-tabular">{{ discountText(discountRate) }}</strong>
             </div>
             <div class="receipt-row">
               <span>账户余额</span>
@@ -248,7 +248,7 @@
           class="pay-detail-row discount-row"
         >
           <span>会员折扣</span>
-          <strong>{{ discountText(payForm.discountRate) }}</strong>
+          <strong class="fx-tabular">{{ discountText(payForm.discountRate) }}</strong>
         </div>
         <div class="pay-detail-row amount-row">
           <span>支付金额</span>
@@ -1361,6 +1361,64 @@ onMounted(fetchVenue)
 
   .head-copy {
     padding: var(--sp-5) var(--sp-5) var(--sp-6);
+  }
+}
+
+/* ==========================================================================
+   2026-10 动效层：只新增装饰与过渡，不动结构、文案与既有 class
+   ========================================================================== */
+
+/* 选中日期的呼吸描边：不是常亮的霓虹，只在该日期被选中且未约满时呼吸 */
+.quick-chip {
+  position: relative;
+}
+
+/* .drop-in 用 both 填充，动画结束后仍在压着 transform —— 棋盘格的 hover 抬升
+   和按压缩格都被它吃掉。改成 backwards：延迟期照样从透明位起步，结束后把
+   transform 交回给本文件原有的 hover / :active 规则（不支持时行为不变） */
+.cell.drop-in {
+  animation-fill-mode: backwards;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .quick-chip.is-on:not(.is-full)::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    border: 1px solid var(--accent);
+    pointer-events: none;
+    animation: vd-chip-breathe 3s var(--ease-out) infinite;
+  }
+
+  @keyframes vd-chip-breathe {
+    0%,
+    100% {
+      opacity: 0;
+      transform: scale(1);
+    }
+    45% {
+      opacity: 0.45;
+      transform: scale(1.06);
+    }
+    75% {
+      opacity: 0;
+      transform: scale(1.12);
+    }
+  }
+
+  /* 支付方式：EP 组件内部结构不动，只用 :deep 给它一块悬停反馈 */
+  .pay-methods :deep(.el-radio.is-bordered) {
+    transition: border-color var(--dur-2) var(--ease-out),
+      background-color var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pay-methods :deep(.el-radio.is-bordered:hover) {
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+    transform: translateY(-1px);
   }
 }
 </style>

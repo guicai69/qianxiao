@@ -1,6 +1,6 @@
 <template>
   <div class="venue-list-wrapper">
-    <header class="page-header list-head">
+    <header class="page-header list-head fx-rise" style="--i: 0">
       <div>
         <h2>选择场馆</h2>
         <p>点开一座球馆，查看场地与可预约时段</p>
@@ -8,7 +8,7 @@
       <span class="list-count mono">{{ filtered.length }} 座</span>
     </header>
 
-    <div class="list-toolbar">
+    <div class="list-toolbar fx-glass">
       <el-input
         v-model="search"
         placeholder="搜索场馆名称或地址"
@@ -30,9 +30,10 @@
 
     <TransitionGroup v-else name="row" tag="div" class="venue-rows" appear>
       <article
-        v-for="venue in filtered"
+        v-for="(venue, i) in filtered"
         :key="venue.id"
-        class="venue-row"
+        class="venue-row fx-sheen fx-hover-parent"
+        :style="{ '--i': i }"
         role="button"
         tabindex="0"
         @click="selectVenue(venue)"
@@ -78,7 +79,7 @@
           <span class="row-price mono">¥30<small>起</small></span>
           <span class="row-go">
             查看场地
-            <el-icon><ArrowRight /></el-icon>
+            <el-icon class="fx-nudge"><ArrowRight /></el-icon>
           </span>
         </div>
       </article>
@@ -400,6 +401,64 @@ onMounted(fetchVenues)
 
   .row-facts {
     gap: 18px;
+  }
+}
+
+/* ==========================================================================
+   2026-10 动效层：吸顶玻璃条 / 列表错峰 / 悬停工艺
+   只新增 class 与过渡，不改既有排版、交互与文案
+   ========================================================================== */
+
+/* 工具条：玻璃底 + 发丝线，桌面上滚进列表后吸在顶栏下面 */
+.list-toolbar {
+  padding: var(--sp-2) var(--sp-3);
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius);
+}
+
+@media (min-width: 1081px) {
+  .list-toolbar {
+    position: sticky;
+    top: calc(var(--nav-h) + var(--sp-2));
+    z-index: var(--z-sticky);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* 静止时是普通工具条，滚过 96px 才真正"变成玻璃"（零 JS 的滚动驱动；
+     不支持 scroll() 的浏览器直接停在 fx-glass 的玻璃态） */
+  @supports (animation-timeline: scroll()) {
+    @media (min-width: 1081px) {
+      .list-toolbar {
+        animation: fx-toolbar-glass linear both;
+        animation-timeline: scroll(root block);
+        animation-range: 0 96px;
+      }
+    }
+  }
+
+  @keyframes fx-toolbar-glass {
+    from {
+      background-color: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      -webkit-backdrop-filter: blur(0);
+      backdrop-filter: blur(0);
+    }
+    to {
+      background-color: var(--fx-glass-bg);
+      border-color: var(--fx-glass-line);
+      box-shadow: var(--shadow);
+      -webkit-backdrop-filter: blur(14px) saturate(1.35);
+      backdrop-filter: blur(14px) saturate(1.35);
+    }
+  }
+
+  /* 错峰入场：TransitionGroup 的 appear 已经负责动，这里只按 --i 给每条排队，
+     不再叠一层 fx-rise，免得两套 transform 打架 */
+  .row-enter-active {
+    transition-delay: calc(var(--i, 0) * 55ms);
   }
 }
 </style>

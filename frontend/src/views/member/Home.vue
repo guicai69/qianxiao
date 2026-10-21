@@ -5,7 +5,7 @@
       <CourtScene />
 
       <div class="hero-inner">
-        <p class="hero-kicker mono">广州 · {{ totalVenues }} 座球馆 · {{ totalCourts }} 片场地</p>
+        <p class="hero-kicker mono fx-rise" style="--i: 0">广州 · {{ totalVenues }} 座球馆 · {{ totalCourts }} 片场地</p>
 
         <h1 class="display-1 hero-title">
           <span class="split" aria-hidden="true">
@@ -29,12 +29,12 @@
           <span class="sr-only">提前订下来。</span>
         </h1>
 
-        <p class="lede hero-lede">
+        <p class="lede hero-lede fx-rise" style="--i: 6">
           场馆、场地、时段一处看清。会员折扣自动算进价格，到店前台签到即核销。
         </p>
 
-        <div class="hero-actions">
-          <el-button type="primary" size="large" class="hero-cta" @click="startBooking">
+        <div class="hero-actions fx-rise" style="--i: 7">
+          <el-button type="primary" size="large" class="hero-cta fx-press" @click="startBooking">
             开始预约
             <el-icon class="el-icon--right"><ArrowRight /></el-icon>
           </el-button>
@@ -46,7 +46,7 @@
           </button>
         </div>
 
-        <ol class="steps mono">
+        <ol class="steps mono fx-rise" style="--i: 8">
           <li>选场馆</li>
           <li>挑时段</li>
           <li>到店核销</li>
@@ -76,6 +76,24 @@
       </div>
     </section>
 
+    <!-- 名单跑马灯：五座球馆横向缓慢流转，纯装饰（数据仍来自真实场馆） -->
+    <section v-if="sheet.length" class="ticker-section">
+      <div class="fx-marquee ticker" aria-hidden="true">
+        <div class="fx-marquee__track">
+          <span v-for="v in sheet" :key="'t1-' + v.id" class="ticker__item mono">
+            <b>{{ v.no }}</b>
+            <span>{{ v.name }}</span>
+            <em>{{ districtOf(v) }}区</em>
+          </span>
+          <span v-for="v in sheet" :key="'t2-' + v.id" class="ticker__item mono">
+            <b>{{ v.no }}</b>
+            <span>{{ v.name }}</span>
+            <em>{{ districtOf(v) }}区</em>
+          </span>
+        </div>
+      </div>
+    </section>
+
     <!-- 印相表：一排球场就是一张接触印相表，逐格挑选 -->
     <section class="sheet-section">
       <header class="section-head">
@@ -91,7 +109,7 @@
           v-for="v in sheet"
           :key="v.id"
           type="button"
-          class="frame frame--link reveal-stagger"
+          class="frame frame--link reveal-stagger fx-sheen fx-hover-parent"
           :style="{ '--i': Number(v.no) - 1 }"
           @click="openVenue(v)"
         >
@@ -108,7 +126,7 @@
             </div>
             <div class="frame__row">
               <span class="frame__addr">{{ v.address || '地址待补充' }}</span>
-              <span class="frame__go">
+              <span class="frame__go fx-nudge">
                 {{ userStore.isLoggedIn ? '选时段' : '登录后选时段' }}
                 <el-icon><ArrowRight /></el-icon>
               </span>
@@ -156,6 +174,11 @@
 
     <!-- 收尾：换幕，回到球馆的暗色调 -->
     <section class="closing" data-plane="deep">
+      <div class="fx-aurora" aria-hidden="true">
+        <span class="fx-aurora__blob"></span>
+        <span class="fx-aurora__blob fx-aurora__blob--b"></span>
+        <span class="fx-aurora__blob fx-aurora__blob--c"></span>
+      </div>
       <div class="closing-inner">
         <h2 class="display-2 drop-in" style="--i: 0">
           {{ userStore.isLoggedIn ? '去挑一块场地' : '注册之后，立刻能订' }}
@@ -168,7 +191,7 @@
           }}
         </p>
         <div class="closing-actions drop-in" style="--i: 2">
-          <el-button type="primary" size="large" @click="startBooking">
+          <el-button type="primary" size="large" class="fx-border-glow fx-press" @click="startBooking">
             {{ userStore.isLoggedIn ? '开始预约' : '注册账号' }}
             <el-icon class="el-icon--right"><ArrowRight /></el-icon>
           </el-button>
@@ -467,6 +490,158 @@ onMounted(async () => {
   gap: 14px;
   flex-wrap: wrap;
   margin-top: 30px;
+}
+
+/* ---------- 动效升级（2026-10） ---------- */
+
+/* 名单跑马灯：两半等宽，靠每个格子自带右间距来保证 -50% 无缝 */
+.ticker-section {
+  width: 100%;
+  max-width: 1180px;
+  margin: 30px auto 0;
+  padding: 0 24px;
+}
+
+.ticker {
+  --fx-speed: 46s;
+  --fx-gap: 38px;
+  padding: 11px 0;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.ticker .fx-marquee__track {
+  gap: 0;
+}
+
+.ticker__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 9px;
+  padding-right: var(--fx-gap);
+  font-size: var(--fs-12);
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.ticker__item b {
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.ticker__item em {
+  font-style: normal;
+  color: var(--ink-4);
+}
+
+/* 区段标题下的发丝线：滚动时从左向右画出来 */
+.section-head {
+  position: relative;
+  padding-bottom: 14px;
+}
+
+.section-head::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent-line), var(--border) 42%, transparent);
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .section-head::after {
+      animation: home-rule-grow linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 22%;
+    }
+  }
+}
+
+@keyframes home-rule-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* 规格带：悬停时数字换上主蓝，格底轻轻亮一下 */
+.spec {
+  transition: background-color var(--dur-3) var(--ease-out);
+}
+
+.spec__num {
+  transition: color var(--dur-3) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .spec:hover {
+    background-color: var(--surface-2);
+  }
+
+  .spec:hover .spec__num {
+    color: var(--accent);
+  }
+}
+
+/* 公告行：左侧蓝条随悬停长出来 */
+.bulletin__item {
+  position: relative;
+  transition: background-color var(--dur-2) var(--ease-out);
+}
+
+.bulletin__item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transform-origin: top center;
+  transition: transform var(--dur-3) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bulletin__item:hover {
+    background-color: var(--surface-2);
+  }
+
+  .bulletin__item:hover::before {
+    transform: scaleY(1);
+  }
+}
+
+/* 收尾换幕：极光层压在正文下面 */
+.closing {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+}
+
+.closing-inner {
+  position: relative;
+  z-index: 2;
+}
+
+/* 印相表格子：悬停时格号从灰变亮，像底片边缘被灯照到 */
+.frame__no {
+  transition: color var(--dur-3) var(--ease-out), border-color var(--dur-3) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .frame--link:hover .frame__no {
+    color: #ffffff;
+    border-color: rgba(91, 157, 255, 0.7);
+  }
 }
 
 /* ---------- 断点 ---------- */

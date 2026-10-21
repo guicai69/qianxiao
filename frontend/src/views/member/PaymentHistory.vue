@@ -1,17 +1,17 @@
 <template>
   <div class="payment-history">
-    <header class="page-header">
+    <header class="page-header fx-rise">
       <h2>支付记录</h2>
       <p>充值、消费与退款流水，余额实时结算</p>
     </header>
 
-    <section class="surface ledger">
+    <section class="surface ledger fx-rise">
       <header class="ledger-head">
         <div class="ledger-balance">
           <span class="field-label">账户余额</span>
           <strong class="mono">¥{{ money(balance) }}</strong>
         </div>
-        <el-button type="primary" class="ledger-cta" @click="showRecharge = true">
+        <el-button type="primary" class="ledger-cta fx-press" @click="showRecharge = true">
           <el-icon class="el-icon--left"><Wallet /></el-icon>充值
         </el-button>
       </header>
@@ -46,8 +46,8 @@
 
             <el-table-column label="金额" width="150" align="right">
               <template #default="{ row }">
-                <span class="amount mono">¥{{ money(row.amount) }}</span>
-                <span v-if="Number(row.bonus) > 0" class="amount-bonus mono">
+                <span class="amount mono fx-tabular">¥{{ money(row.amount) }}</span>
+                <span v-if="Number(row.bonus) > 0" class="amount-bonus mono fx-tabular">
                   送 ¥{{ money(row.bonus) }}
                 </span>
               </template>
@@ -338,6 +338,76 @@ onMounted(() => {
   font-size: var(--fs-16);
   font-weight: 800;
   color: var(--accent);
+}
+
+/* ---------- 动效升级（2026-10） ---------- */
+
+/* 首屏节奏：页头先落，账本随后 */
+.page-header.fx-rise {
+  --i: 0;
+}
+
+.ledger.fx-rise {
+  --i: 1;
+}
+
+/* 表头：一层玻璃底，滚动时吸在会员顶栏下面 */
+.ledger-table {
+  --el-table-row-hover-bg-color: transparent;
+}
+
+.ledger-table :deep(.el-table__header-wrapper) {
+  background: var(--fx-glass-bg);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  backdrop-filter: blur(14px) saturate(1.35);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* 只有宽屏顶栏是固定 68px；≤1080 时 MemberLayout 的导航会换行成第二排，
+   --nav-h 不再等于真实顶栏高度，这时不吸顶，免得表头钻进导航底下。
+   EP 的 .el-table 默认 overflow:hidden 会把 sticky 关进不滚动的 scrollport，
+   这里只放开根节点，表体依旧由 .el-table__body-wrapper 自己裁。 */
+@media (min-width: 1081px) {
+  .ledger-table {
+    overflow: visible;
+  }
+
+  .ledger-table :deep(.el-table__header-wrapper) {
+    position: sticky;
+    top: var(--nav-h);
+    z-index: 4;
+  }
+}
+
+.ledger-table :deep(.el-table__header-wrapper th.el-table__cell) {
+  background-color: transparent;
+}
+
+.ledger-table :deep(.el-table__header-wrapper .cell) {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+/* 行高亮带：从左侧展开，代替 EP 默认的整格灰底 */
+.ledger-table :deep(.el-table__body tr.el-table__row) {
+  background-image: linear-gradient(90deg, var(--accent-soft) 0%, transparent 76%);
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 0 100%;
+  transition: background-size var(--dur-4) var(--ease-expo);
+}
+
+.ledger-table :deep(.el-table__body tr.el-table__row:hover) {
+  background-size: 100% 100%;
+}
+
+/* 充值按钮：按下内缩（补回 EP 的颜色/投影过渡） */
+.ledger-cta.fx-press {
+  transition: transform var(--dur-2) var(--ease-out), background-color var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out);
 }
 
 /* ---------- 断点 ---------- */
