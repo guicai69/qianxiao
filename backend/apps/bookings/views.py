@@ -157,6 +157,13 @@ class BookingViewSet(viewsets.ModelViewSet):
         if booking.status not in ['pending', 'paid']:
             return Response({'detail': '该订单状态不可取消'}, status=400)
 
+        # 有未完成的退场申请时，会员不能走自助取消，避免同一订单二次退款
+        if not is_staff and CancellationRequest.objects.filter(
+            booking=booking,
+            status__in=(CancellationRequest.STATUS_PENDING, CancellationRequest.STATUS_APPROVED),
+        ).exists():
+            return Response({'detail': '该订单有未完成的退场申请，请等待前台处理'}, status=400)
+
         was_paid = booking.status == 'paid'
         user = booking.user
         refund_amount = Decimal('0')
@@ -214,20 +221,20 @@ class BookingViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     @transaction.atomic
     def request_cancel(self, request, pk=None):
-        """会员在开场前 2 小时内提交退场申请（前台审批通过后 5 分钟自动退款）"""
+        """已支付订单在时段结束前可随时提交退场申请（前台审批通过后 5 分钟自动退款）"""
         booking = self.get_object()
         if booking.status != 'paid':
             return Response({'code': 400, 'message': '只有已支付订单可申请退场'}, status=400)
+        if booking.checked_in:
+            return Response({'code': 400, 'message': '已签到订单不可申请退场'}, status=400)
 
-        slot_start = datetime.combine(
-            booking.date, booking.time_slot.start_time,
+        slot_end = datetime.combine(
+            booking.date, booking.time_slot.end_time,
             tzinfo=timezone.get_current_timezone(),
         )
         now = timezone.now()
-        if slot_start <= now:
-            return Response({'code': 400, 'message': '已开场，无法申请退场'}, status=400)
-        if (slot_start - now) > FREE_CANCEL_WINDOW:
-            return Response({'code': 400, 'message': '距开场超过 2 小时，可直接取消'}, status=400)
+        if now >= slot_end:
+            return Response({'code': 400, 'message': '该时段已结束，无法申请退场'}, status=400)
         if CancellationRequest.objects.filter(
             booking=booking,
             status__in=(CancellationRequest.STATUS_PENDING, CancellationRequest.STATUS_APPROVED),

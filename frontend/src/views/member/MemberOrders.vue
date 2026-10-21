@@ -75,9 +75,14 @@
                 <el-tag v-if="row.cancellation_status === 'pending'" type="warning" effect="light" round>退场审批中</el-tag>
                 <el-tag v-else-if="row.cancellation_status === 'approved'" type="primary" effect="light" round>待退款</el-tag>
                 <el-tag v-else-if="row.cancellation_status === 'refunded'" type="success" effect="light" round>已退款</el-tag>
-                <el-tag v-else-if="row.cancellation_status === 'rejected'" type="danger" effect="light" round>退场被驳回</el-tag>
-                <el-button v-else-if="row.cancel_window === 'free'" @click="handleCancel(row)">取消预约</el-button>
-                <el-button v-else-if="row.cancel_window === 'request'" type="warning" @click="handleRequestCancel(row)">申请退场</el-button>
+                <template v-else>
+                  <el-tag v-if="row.cancellation_status === 'rejected'" type="danger" effect="light" round>退场被驳回</el-tag>
+                  <el-button v-if="row.cancel_window === 'free'" @click="handleCancel(row)">取消预约</el-button>
+                  <el-button v-else-if="canRequestCancel(row)" type="warning" @click="handleRequestCancel(row)">
+                    {{ row.cancellation_status === 'rejected' ? '重新申请退场' : '申请退场' }}
+                  </el-button>
+                  <span v-else-if="row.cancel_window === 'ended'" class="hint">时段已结束</span>
+                </template>
               </template>
             </div>
           </li>
@@ -193,6 +198,9 @@ const reviewForm = reactive({ bookingId: null, rating: 5, content: "" })
 
 const rechargeBonus = computed(() => getRechargeBonus(rechargeForm.amount))
 const rechargeCredit = computed(() => Number(rechargeForm.amount || 0) + rechargeBonus.value)
+
+/** 可申请退场的窗口：开场前 2 小时内，或已开场但时段未结束（都走前台审批） */
+const canRequestCancel = (row) => ["request", "started"].includes(row.cancel_window)
 
 /** 有折扣（原价与实付不同）时才展示原价那一行 */
 const hasDiscount = (row) => {
@@ -501,6 +509,12 @@ onMounted(() => {
 .order-actions :deep(.el-button) {
   min-height: 40px;
   margin: 0;
+}
+
+.order-actions .hint {
+  font-size: var(--fs-12);
+  color: var(--ink-4);
+  white-space: nowrap;
 }
 
 /* ---------- 充值 / 支付弹窗 ---------- */

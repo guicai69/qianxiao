@@ -12,8 +12,8 @@ from apps.bookings.utils import process_due_refunds
 TZ = ZoneInfo('Asia/Shanghai')
 
 
-def _paid_booking(member, start='11:30', amount='100.00'):
-    _, court, slot = make_venue_court_slot(price=amount, start=start, end='23:00')
+def _paid_booking(member, start='11:30', end='23:00', amount='100.00', checked_in=False):
+    _, court, slot = make_venue_court_slot(price=amount, start=start, end=end)
     return Booking.objects.create(
         user=member, court=court, date=datetime(2025, 1, 15).date(),
         time_slot=slot, status='paid', amount=amount,
@@ -35,21 +35,56 @@ class CancellationRequestTests(APITestCase):
         self.assertEqual(req.status, 'pending')
         self.assertEqual(str(req.refund_amount), '100.00')
 
-    def test_member_request_over_2h_rejected(self):
+    def test_member_request_over_2h_allowed(self):
+        """已支付订单距开场超过 2 小时也能申请退场（前台审批）"""
         member = make_user('13800000001')
         b = _paid_booking(member, start='14:00')
+        self.client.force_authenticate(user=member)
+        with mock.patch('django.utils.timezone.now', return_value=FIXED):
+            r = self.client.post(f'/api/bookings/{b.id}/request_cancel/', {'reason': '临时有事'})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(CancellationRequest.objects.get(booking=b).status, 'pending')
+
+    def test_after_start_but_before_end_allowed(self):
+        """已开场但时段未结束：仍可申请退场（前台审批决定是否退款）"""
+        member = make_user('13800000001')
+        b = _paid_booking(member, start='09:00', end='23:00')
+        self.client.force_authenticate(user=member)
+        with mock.patch('django.utils.timezone.now', return_value=FIXED):
+            r = self.client.post(f'/api/bookings/{b.id}/request_cancel/', {})
+        self.assertEqual(r.status_code, 200)
+
+    def test_after_end_rejected(self):
+        member = make_user('13800000001')
+        b = _paid_booking(member, start='09:00', end='09:30')
         self.client.force_authenticate(user=member)
         with mock.patch('django.utils.timezone.now', return_value=FIXED):
             r = self.client.post(f'/api/bookings/{b.id}/request_cancel/', {})
         self.assertEqual(r.status_code, 400)
 
-    def test_after_start_rejected(self):
+    def test_checked_in_rejected(self):
         member = make_user('13800000001')
-        b = _paid_booking(member, start='09:00')
+        b = _paid_booking(member, start='11:30')
+        b.checked_in = True
+        b.save(update_fields=['checked_in'])
         self.client.force_authenticate(user=member)
         with mock.patch('django.utils.timezone.now', return_value=FIXED):
             r = self.client.post(f'/api/bookings/{b.id}/request_cancel/', {})
         self.assertEqual(r.status_code, 400)
+
+    def test_member_cannot_self_cancel_while_request_pending(self):
+        """有未完成退场申请时，会员不能再自助取消，避免二次退款"""
+        member = make_user('13800000001')
+        b = _paid_booking(member, start='14:00')
+        CancellationRequest.objects.create(
+            booking=b, user=member, refund_amount='100.00', status='pending',
+        )
+        self.client.force_authenticate(user=member)
+        with mock.patch('django.utils.timezone.now', return_value=FIXED):
+            r = self.client.post(f'/api/bookings/{b.id}/cancel/')
+        self.assertEqual(r.status_code, 400)
+        b.refresh_from_db()
+        self.assertEqual(b.status, 'paid')
 
     def test_not_paid_rejected(self):
         member = make_user('13800000001')

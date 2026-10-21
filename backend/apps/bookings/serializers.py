@@ -24,7 +24,7 @@ class BookingListSerializer(serializers.ModelSerializer):
         return req.status if req else None
 
     def get_cancel_window(self, obj):
-        """free=开场前2小时外可直取消；request=2小时内需申请退场；started=已开场"""
+        """free=开场前2小时外可自助取消；request/started=可申请退场（需前台审批）；ended=时段已结束"""
         if obj.status != 'paid':
             return None
         from datetime import datetime, timedelta
@@ -32,7 +32,12 @@ class BookingListSerializer(serializers.ModelSerializer):
         slot_start = datetime.combine(
             obj.date, obj.time_slot.start_time, tzinfo=timezone.get_current_timezone(),
         )
+        slot_end = datetime.combine(
+            obj.date, obj.time_slot.end_time, tzinfo=timezone.get_current_timezone(),
+        )
         now = timezone.now()
+        if now >= slot_end:
+            return 'ended'
         if now >= slot_start:
             return 'started'
         if (slot_start - now) > timedelta(hours=2):
