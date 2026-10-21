@@ -562,6 +562,97 @@ onUnmounted(() => {
     display: none;
   }
 }
+
+/* ==========================================================================
+   动效层（2026-10）：只加交互反馈，不改排版、尺寸与结构
+   ========================================================================== */
+
+.brand .brand-mark {
+  transition: transform var(--dur-4) var(--ease-spring), color var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .brand:hover .brand-mark {
+    transform: rotate(-4deg);
+    color: #fff;
+    border-color: var(--rail-accent);
+  }
+}
+
+.icon-btn {
+  transition: background-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+
+.icon-btn:active {
+  transform: scale(0.94);
+}
+
+.rail-menu :deep(.el-menu-item) {
+  transition: background-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+  position: relative;
+}
+
+.rail-menu :deep(.el-menu-item:active) {
+  transform: scale(0.985);
+}
+
+/* 当前页：色块之外再点一颗呼吸小灯，眼睛扫过去就知道自己在哪 */
+@media (prefers-reduced-motion: no-preference) {
+  .rail-menu:not(.el-menu--collapse) :deep(.el-menu-item.is-active::after) {
+    content: "";
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    margin-top: -2.5px;
+    border-radius: 50%;
+    background: var(--rail-accent);
+    animation: rail-dot 2.6s var(--ease-out) infinite;
+  }
+
+  @keyframes rail-dot {
+    0%,
+    100% {
+      opacity: 0.45;
+      box-shadow: 0 0 0 0 rgba(91, 157, 255, 0);
+    }
+    50% {
+      opacity: 1;
+      box-shadow: 0 0 0 4px rgba(91, 157, 255, 0.16);
+    }
+  }
+}
+
+.avatar {
+  transition: box-shadow var(--dur-3) var(--ease-out), transform var(--dur-2) var(--ease-spring);
+}
+
+.user-entry {
+  padding: 4px 8px 4px 4px;
+  border-radius: 12px;
+  transition: background-color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .user-entry:hover {
+    background: var(--surface-2);
+  }
+
+  .user-entry:hover .avatar {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}
+
+/* 内容区换页：进去快、出来快，别让管理端点一次菜单像卡了一下 */
+.fade-slide-enter-active {
+  transition-duration: var(--dur-3);
+  transition-timing-function: var(--ease-expo);
+}
 </style>
 
 <style>
