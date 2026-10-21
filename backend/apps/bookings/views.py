@@ -258,7 +258,10 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def my(self, request):
+        # 进「我的订单」时顺手把到期的两件事处理掉：
+        # 审批通过满 5 分钟的退场自动退款、超时未支付的订单落库取消（避免「待支付」页签里躺着已结束的订单）
         process_due_refunds()
+        cancel_expired_pendings()
         qs = self.get_queryset().filter(user=request.user)
         page = self.paginate_queryset(qs)
         if page is not None:

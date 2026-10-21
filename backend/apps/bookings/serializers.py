@@ -10,6 +10,8 @@ class BookingListSerializer(serializers.ModelSerializer):
     user_nickname = serializers.CharField(source='user.nickname', read_only=True)
     cancellation_status = serializers.SerializerMethodField()
     cancel_window = serializers.SerializerMethodField()
+    is_finished = serializers.BooleanField(read_only=True)
+    is_expired = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Booking
@@ -17,7 +19,7 @@ class BookingListSerializer(serializers.ModelSerializer):
                   'venue_name', 'date', 'time_slot', 'time_slot_display',
                   'amount', 'original_amount', 'discount_rate', 'coupon_amount', 'status',
                   'checked_in', 'checked_in_at', 'created_at',
-                  'cancellation_status', 'cancel_window']
+                  'cancellation_status', 'cancel_window', 'is_finished', 'is_expired']
 
     def get_cancellation_status(self, obj):
         req = obj.cancellation_requests.order_by('-created_at').first()
@@ -27,14 +29,10 @@ class BookingListSerializer(serializers.ModelSerializer):
         """free=开场前2小时外可自助取消；request/started=可申请退场（需前台审批）；ended=时段已结束"""
         if obj.status != 'paid':
             return None
-        from datetime import datetime, timedelta
+        from datetime import timedelta
         from django.utils import timezone
-        slot_start = datetime.combine(
-            obj.date, obj.time_slot.start_time, tzinfo=timezone.get_current_timezone(),
-        )
-        slot_end = datetime.combine(
-            obj.date, obj.time_slot.end_time, tzinfo=timezone.get_current_timezone(),
-        )
+        slot_start = obj.slot_start_at
+        slot_end = obj.slot_end_at
         now = timezone.now()
         if now >= slot_end:
             return 'ended'
@@ -52,6 +50,8 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     time_slot_display = serializers.CharField(source='time_slot.display', read_only=True)
     user_phone = serializers.CharField(source='user.phone', read_only=True)
     user_nickname = serializers.CharField(source='user.nickname', read_only=True)
+    is_finished = serializers.BooleanField(read_only=True)
+    is_expired = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Booking

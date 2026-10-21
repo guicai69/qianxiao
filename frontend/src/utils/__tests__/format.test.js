@@ -4,6 +4,9 @@ import {
   discountText,
   bookingStatusLabel,
   bookingStatusTag,
+  orderClosed,
+  orderStateLabel,
+  orderStateTag,
   paymentStatusLabel,
   paymentTypeTag,
 } from '@/utils/format'
@@ -27,6 +30,17 @@ describe('utils/format', () => {
     expect(bookingStatusTag('paid')).toBe('success')
     expect(bookingStatusTag('cancelled')).toBe('info')
     expect(bookingStatusTag('unknown')).toBe('info')
+  })
+
+  it('订单「视为结束」：已支付且时段已过 / 待支付且超时未付', () => {
+    expect(orderClosed({ status: 'paid', is_finished: true })).toBe(true)
+    expect(orderClosed({ status: 'pending', is_expired: true })).toBe(true)
+    expect(orderClosed({ status: 'paid', is_finished: false })).toBe(false)
+    expect(orderStateLabel({ status: 'paid', is_finished: true })).toBe('已结束')
+    expect(orderStateLabel({ status: 'pending', is_expired: true })).toBe('已结束')
+    expect(orderStateLabel({ status: 'paid' })).toBe('已支付')
+    expect(orderStateTag({ status: 'paid', is_finished: true })).toBe('info')
+    expect(orderStateTag({ status: 'pending' })).toBe('warning')
   })
 
   it('payment 状态与类型', () => {

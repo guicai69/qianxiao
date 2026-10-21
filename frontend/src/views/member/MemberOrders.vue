@@ -34,11 +34,11 @@
             <div class="order-info">
               <div class="order-head">
                 <h4>{{ row.venue_name }}</h4>
-                <el-tag :type="statusTag(row.status)" effect="light" round size="small">
-                  {{ statusLabel(row.status) }}
+                <el-tag :type="orderStateTag(row)" effect="light" round size="small">
+                  {{ orderStateLabel(row) }}
                 </el-tag>
                 <el-tag
-                  v-if="row.status === 'paid'"
+                  v-if="row.status === 'paid' && !row.is_finished"
                   :type="row.checked_in ? 'success' : 'info'"
                   effect="plain"
                   round
@@ -64,9 +64,12 @@
             </div>
 
             <div class="order-actions">
-              <template v-if="row.status === 'pending'">
+              <template v-if="row.status === 'pending' && !row.is_expired">
                 <el-button type="primary" @click="handlePay(row)">支付</el-button>
                 <el-button @click="handleCancel(row)">取消</el-button>
+              </template>
+              <template v-else-if="row.status === 'pending'">
+                <span class="hint">超时未支付，订单已结束</span>
               </template>
               <template v-else-if="row.status === 'paid' && row.checked_in">
                 <el-button @click="openReview(row)">评价</el-button>
@@ -177,7 +180,7 @@ import { bookingApi } from "@/api/bookings"
 import { paymentApi } from "@/api/payments"
 import { reviewApi } from "@/api/reviews"
 import { getRechargeBonus, loadBonusTiers } from "@/utils/recharge"
-import { money, discountText, bookingStatusTag as statusTag, bookingStatusLabel as statusLabel } from "@/utils/format"
+import { money, discountText, orderStateLabel, orderStateTag } from "@/utils/format"
 import { useUserStore } from "@/store"
 
 const userStore = useUserStore()

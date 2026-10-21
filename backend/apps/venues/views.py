@@ -1,5 +1,6 @@
-from datetime import date
+from datetime import date, timedelta
 
+from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -11,6 +12,7 @@ from django.db import IntegrityError
 
 from .models import Venue, Court, TimeSlot
 from apps.bookings.models import Booking
+from apps.bookings.utils import PENDING_TIMEOUT_MINUTES
 from apps.common.cache import cache_or_compute
 from .serializers import (
     VenueListSerializer, VenuePublicSerializer, VenueDetailSerializer,
@@ -145,15 +147,17 @@ class VenueViewSet(ProtectedDeleteMixin, IntegrityErrorCreateMixin, viewsets.Mod
         except ValueError:
             return Response({'detail': 'date 参数格式错误'}, status=400)
 
-        # 纯读接口：过期未支付订单由定时任务 cancel_expired_bookings 清理。
+        # 纯读接口：GET 不写库。超过支付时限仍未支付的订单在这里「视为已释放」，
+        # 真正落库取消交给定时任务 cancel_expired_bookings / 下单时的惰性清理。
         # 占用列表缓存 30 秒，下单/支付/取消时主动失效
         def compute():
             # 只返回「页面上真能看到」的占用：停用场地/停用时段的历史订单一律剔除，
             # 否则前端的「当天还剩几个可约格」会被这些看不见的格子算少
+            overdue = timezone.now() - timedelta(minutes=PENDING_TIMEOUT_MINUTES)
             qs = Booking.objects.filter(
                 court__venue=venue, court__is_active=True,
                 time_slot__is_active=True, date=bdate,
-            ).exclude(status='cancelled')
+            ).exclude(status='cancelled').exclude(status='pending', created_at__lt=overdue)
             return [
                 {'court_id': b.court_id, 'time_slot_id': b.time_slot_id}
                 for b in qs

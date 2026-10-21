@@ -409,6 +409,49 @@ async function fetchDayRemaining() {
     next[date] = Math.max(cells - occupied - past, 0)
   })
   dayRemaining.value = next
+  return next
+}
+
+/** 'YYYY-MM-DD' → '10月22日'，提示文案用 */
+function humanDate(dateStr) {
+  const parts = String(dateStr).split('-')
+  if (parts.length !== 3) return dateStr
+  return `${Number(parts[1])}月${Number(parts[2])}日`
+}
+
+/** 从今天起找最近一个还有空位的日期：已预取的 7 天直接查表，之后按天往后问，最多找 30 天 */
+async function findNextAvailableDay(known = {}) {
+  const venueId = venue.value?.id
+  if (!venueId) return ''
+  const cells = courts.value.length * slots.value.length
+  for (let i = 0; i < 30; i += 1) {
+    const key = formatDate(i)
+    if (Object.prototype.hasOwnProperty.call(known, key)) {
+      if (known[key] > 0) return key
+      continue
+    }
+    try {
+      const res = await venueApi.availability(venueId, { date: key })
+      if (cells - (res?.occupied || []).length > 0) return key
+    } catch {
+      // 单日请求失败就当这天没空位，继续往后找
+    }
+  }
+  return ''
+}
+
+/** 今天约满时自动跳到最近一个还有空位的日期，省得用户自己去翻日历 */
+async function autoJumpToAvailableDay() {
+  const map = await fetchDayRemaining()
+  if (!isDayFull(formatDate(0))) return
+  const target = await findNextAvailableDay(map)
+  if (!target) {
+    ElMessage.warning('最近 30 天都没有可约时段了，换个场馆或稍后再看')
+    return
+  }
+  bookDate.value = target
+  fetchBookings()
+  ElMessage.info(`今天已约满，已自动切换到 ${humanDate(target)}`)
 }
 
 /** 棋盘上点一格：等价于「选中这片场地 + 预约这个时段」 */
@@ -434,7 +477,8 @@ async function fetchVenue() {
     bookDate.value = formatDate(0)
     fetchBookings()
     fetchCoupons()
-    fetchDayRemaining()
+    // 今天约满就直接落到最近一个有空位的日期
+    await autoJumpToAvailableDay()
   } catch {
     ElMessage.error('获取场馆信息失败')
   } finally {

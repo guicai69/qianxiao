@@ -64,8 +64,8 @@
         </el-table-column>
         <el-table-column label="状态" width="88">
           <template #default="{ row }">
-            <el-tag :type="statusTag(row.status)" effect="light" round size="small">
-              {{ statusLabel(row.status) }}
+            <el-tag :type="orderStateTag(row)" effect="light" round size="small">
+              {{ orderStateLabel(row) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -80,8 +80,8 @@
         </el-table-column>
         <el-table-column label="操作" width="190" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" @click="handlePay(row)" v-if="row.status==='pending'">收款</el-button>
-            <el-button size="small" type="success" @click="handleCheckIn(row)" v-if="row.status==='paid' && !row.checked_in">签到</el-button>
+            <el-button size="small" type="primary" @click="handlePay(row)" v-if="row.status==='pending' && !row.is_expired">收款</el-button>
+            <el-button size="small" type="success" @click="handleCheckIn(row)" v-if="row.status==='paid' && !row.checked_in && !row.is_finished">签到</el-button>
             <el-button size="small" @click="handleCancel(row)" v-if="row.status!=='cancelled'">取消</el-button>
           </template>
         </el-table-column>
@@ -116,7 +116,7 @@ import { bookingApi } from "@/api/bookings"
 import { paymentApi } from "@/api/payments"
 import { venueApi } from "@/api/venues"
 import { downloadBlob } from "@/utils/download"
-import { discountText, bookingStatusTag as statusTag, bookingStatusLabel as statusLabel } from "@/utils/format"
+import { discountText, orderStateLabel, orderStateTag } from "@/utils/format"
 
 const list = ref([]); const total = ref(0); const loading = ref(false); const venues = ref([])
 const query = reactive({ page: 1, page_size: 20, date: "", venue: "", status: "" })

@@ -77,5 +77,7 @@ describe('VenueDetail 场地预订页', () => {
     expect(chips[0].attributes('disabled')).toBeDefined()
     expect(chips[0].text()).toContain('已满')
     expect(chips[1].attributes('disabled')).toBeUndefined()
+    // 今天约满 → 自动落到最近一个有空位的日期（明天）
+    expect(chips[1].classes()).toContain('is-on')
   })
 })

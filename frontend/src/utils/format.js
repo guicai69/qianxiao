@@ -18,6 +18,11 @@ export const levelLabel = (l) => ({ normal: '普通会员', silver: '银卡会�
 export const bookingStatusLabel = (s) => ({ pending: '待支付', paid: '已支付', cancelled: '已取消' }[s] || s)
 export const bookingStatusTag = (s) => ({ pending: 'warning', paid: 'success', cancelled: 'info' }[s] || 'info')
 
+// 到期/逾期的未完成订单「视为结束」：已支付但时段已过（is_finished）、待支付但超时未付（is_expired）
+export const orderClosed = (row) => Boolean(row?.is_finished || row?.is_expired)
+export const orderStateLabel = (row) => (orderClosed(row) ? '已结束' : bookingStatusLabel(row?.status))
+export const orderStateTag = (row) => (orderClosed(row) ? 'info' : bookingStatusTag(row?.status))
+
 // 支付记录状态 / 类型 / 方式
 export const paymentStatusLabel = (s) => ({ success: '成功', failed: '失败', pending: '处理中' }[s] || s)
 export const paymentStatusTag = (s) => ({ success: 'success', failed: 'danger', pending: 'info' }[s] || 'info')

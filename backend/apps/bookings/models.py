@@ -1,7 +1,10 @@
 # bookings models
 
+from datetime import datetime, timedelta
+
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 class Booking(models.Model):
@@ -70,6 +73,37 @@ class Booking(models.Model):
             models.Index(fields=['court', 'date']),
             models.Index(fields=['date', 'status']),
         ]
+
+    @property
+    def slot_start_at(self):
+        """时段开始的具体时刻（当天 + 时段起点，带时区）"""
+        return datetime.combine(
+            self.date, self.time_slot.start_time,
+            tzinfo=timezone.get_current_timezone(),
+        )
+
+    @property
+    def slot_end_at(self):
+        """时段结束的具体时刻（当天 + 时段终点，带时区）"""
+        return datetime.combine(
+            self.date, self.time_slot.end_time,
+            tzinfo=timezone.get_current_timezone(),
+        )
+
+    @property
+    def is_finished(self):
+        """已支付且时段已经结束：订单视作结束，不再可支付/签到/退场"""
+        return self.status == self.STATUS_PAID and timezone.now() >= self.slot_end_at
+
+    @property
+    def is_expired(self):
+        """待支付但已超过支付时限：订单视作结束（超时未支付）"""
+        from .utils import PENDING_TIMEOUT_MINUTES
+
+        if self.status != self.STATUS_PENDING:
+            return False
+        deadline = self.created_at + timedelta(minutes=PENDING_TIMEOUT_MINUTES)
+        return timezone.now() >= deadline
 
     def __str__(self):
         return f"{self.user.nickname or self.user.phone} @ {self.court.name} {self.date}"

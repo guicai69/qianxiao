@@ -241,7 +241,8 @@ class PayCancelRefundTests(APITestCase):
 
 
 class PendingTimeoutTests(APITestCase):
-    def test_availability_is_pure_read(self):
+    def test_availability_releases_expired_pending_without_write(self):
+        """超时未支付的订单在可约时段里视为已释放，但 GET 本身不写库"""
         member = make_user('13800000001')
         member2 = make_user('13800000002')
         venue, court, slot = make_venue_court_slot()
@@ -251,7 +252,95 @@ class PendingTimeoutTests(APITestCase):
         self.client.force_authenticate(user=member2)
         r = self.client.get(f'/api/venues/{venue.id}/availability/', {'date': tomorrow.isoformat()})
         self.assertEqual(r.status_code, 200)
-        # GET 无写副作用：过期清理交给 cancel_expired_bookings 定时任务
+        # 过期未支付 = 没有真正占住时段，列表里不应再出现
+        self.assertEqual(r.data['occupied'], [])
+        # GET 无写副作用：状态落库交给 cancel_expired_bookings 定时任务
         b.refresh_from_db()
         self.assertEqual(b.status, 'pending')
+
+    def test_my_orders_cancels_stale_pending(self):
+        """我的订单列表会把超时未支付的订单落库取消，待支付页签不再出现僵尸单"""
+        member = make_user('13800000001')
+        _, court, slot = make_venue_court_slot()
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        b = Booking.objects.create(
+            user=member, court=court, date=tomorrow, time_slot=slot,
+            status='pending', amount='100.00',
+        )
+        Booking.objects.filter(pk=b.pk).update(created_at=timezone.now() - timedelta(minutes=20))
+        self.client.force_authenticate(user=member)
+        r = self.client.get('/api/bookings/my/')
+        self.assertEqual(r.status_code, 200)
+        b.refresh_from_db()
+        self.assertEqual(b.status, 'cancelled')
+        # 返回的列表里这条已经是「已取消」，不再是待支付
+        row = [x for x in r.data['results'] if x['id'] == b.id][0]
+        self.assertEqual(row['status'], 'cancelled')
+        # 待支付页签里不会再出现
+        r = self.client.get('/api/bookings/', {'status': 'pending'})
+        self.assertNotIn(b.id, [x['id'] for x in r.data['results']])
+
+    def test_availability_keeps_fresh_pending(self):
+        """还在支付时限内的待支付订单照常占用时段"""
+        member = make_user('13800000001')
+        member2 = make_user('13800000002')
+        venue, court, slot = make_venue_court_slot()
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        Booking.objects.create(user=member, court=court, date=tomorrow, time_slot=slot, status='pending', amount='100.00')
+        self.client.force_authenticate(user=member2)
+        r = self.client.get(f'/api/venues/{venue.id}/availability/', {'date': tomorrow.isoformat()})
         self.assertEqual(r.data['occupied'], [{'court_id': court.id, 'time_slot_id': slot.id}])
+
+
+class OrderClosedStateTests(APITestCase):
+    """到期/逾期的未完成订单视作结束：已支付但时段已过、待支付但超时未付"""
+
+    def setUp(self):
+        self.member = make_user('13800000001')
+        self.client.force_authenticate(user=self.member)
+
+    def test_paid_booking_finished_after_slot_end(self):
+        _, court, slot = make_venue_court_slot()
+        yesterday = timezone.localdate() - timedelta(days=1)
+        b = Booking.objects.create(
+            user=self.member, court=court, date=yesterday, time_slot=slot,
+            status='paid', amount='100.00',
+        )
+        r = self.client.get(f'/api/bookings/{b.id}/')
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data['is_finished'])
+        self.assertFalse(r.data['is_expired'])
+
+    def test_paid_booking_tomorrow_not_finished(self):
+        _, court, slot = make_venue_court_slot()
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        b = Booking.objects.create(
+            user=self.member, court=court, date=tomorrow, time_slot=slot,
+            status='paid', amount='100.00',
+        )
+        r = self.client.get(f'/api/bookings/{b.id}/')
+        self.assertFalse(r.data['is_finished'])
+
+    def test_expired_pending_flagged_on_list(self):
+        _, court, slot = make_venue_court_slot()
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        b = Booking.objects.create(
+            user=self.member, court=court, date=tomorrow, time_slot=slot,
+            status='pending', amount='100.00',
+        )
+        Booking.objects.filter(pk=b.pk).update(created_at=timezone.now() - timedelta(minutes=20))
+        r = self.client.get('/api/bookings/', {'status': 'pending'})
+        self.assertEqual(r.status_code, 200)
+        row = [x for x in r.data['results'] if x['id'] == b.id][0]
+        self.assertTrue(row['is_expired'])
+        self.assertFalse(row['is_finished'])
+
+    def test_fresh_pending_not_expired(self):
+        _, court, slot = make_venue_court_slot()
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        b = Booking.objects.create(
+            user=self.member, court=court, date=tomorrow, time_slot=slot,
+            status='pending', amount='100.00',
+        )
+        r = self.client.get(f'/api/bookings/{b.id}/')
+        self.assertFalse(r.data['is_expired'])
